@@ -13,7 +13,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.
 from app.core.config import GEMINI_API_KEY, RUBRIC_MODEL, GRADE_MODEL, get_ist_timezone, now_utc
 from app.core.database import db_client
 from ai_models.llm_evaluation.evaluator import (
-    extract_rubrics_from_file, compute_rubric_set_id, grade_submission
+    extract_rubrics_from_file, compute_rubric_set_id, grade_submission,
+    validate_rubrics_with_llm # NEW: Import the validation function
 )
 
 # --- Initialize Gemini Client ---
@@ -77,6 +78,10 @@ def setup_rubric_and_deadline():
     # Extract rubrics using the evaluator module
     print("\n🧠 Asking Gemini to extract and understand rubrics...")
     parsed_rubrics = extract_rubrics_from_file(file_obj)
+    print(parsed_rubrics)
+    # NEW: Validate the extracted rubrics using the LangChain wrapper
+    validate_rubrics_with_llm(parsed_rubrics, RUBRIC_MODEL)
+    
     genai.delete_file(file_obj.name) # clean up the uploaded file
 
     # Confirmation summary

@@ -1,5 +1,6 @@
 # --- Core LLM & Database ---
-google-generativeai
+google-genai            # <--- CRITICAL NEW ADDITION (For V2 SDK / Gemini 2.5)
+google-generativeai     # (Keep for backward compatibility/LangChain dependency)
 pymongo
 PyPDF2
 
@@ -10,11 +11,10 @@ pydantic
 python-dotenv
 
 # --- AI Orchestration & Tooling ---
+langchain-core
 langchain
 langchain-google-genai
-# Note: LangChain generally requires an LLM provider package like the one above.
 
 # --- Frontend & Visualization ---
 streamlit
 plotly
-

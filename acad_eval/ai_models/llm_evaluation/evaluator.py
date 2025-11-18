@@ -1,10 +1,21 @@
+# ai_models/llm_evaluation/evaluator.py
+
 import json, re
 from typing import Dict, Any, List, Optional
 import google.generativeai as genai
 import PyPDF2
 import hashlib
+# REMOVED: from google.generativeai.types import File # Fixes ImportError
+from .ai_wrapper import GeminiLC # NEW: Import the LangChain wrapper
 
-def extract_rubrics_from_file(file) -> str:
+# --- Initialize Global Gemini Client for file operations ---
+try:
+    GEMINI_CLIENT = genai.Client()
+except Exception:
+    GEMINI_CLIENT = None 
+
+# --- Rubric Extraction (Unchanged from native genai call, as it requires the file object) ---
+def extract_rubrics_from_file(file: object) -> List[Dict[str, Any]]:
     """Uses Gemini to parse the rubric JSON from a PDF file."""
     prompt = """
     You are an academic evaluator.
@@ -37,6 +48,41 @@ def extract_rubrics_from_file(file) -> str:
             rubric["key"] = rubric["title"].lower().strip().replace(" ", "_").replace("/", "").replace("-", "_")
     
     return parsed_rubrics
+
+# --- NEW: Rubric Validation using LangChain Wrapper ---
+def validate_rubrics_with_llm(parsed_rubrics: List[Dict[str, Any]], model_name: str = "gemini-2.5-flash") -> None:
+    """Uses the GeminiLC wrapper for text-only validation of the parsed rubrics."""
+    rubrics_json = json.dumps(parsed_rubrics, indent=2, ensure_ascii=False)
+    
+    validation_prompt = f"""
+    You are a JSON validation expert.
+    Analyze the following JSON array of rubric items.
+    
+    Ensure that:
+    1. It is a valid JSON array.
+    2. Every object contains a 'title' string, a 'description' string, and a 'key' string.
+    3. The 'scale' field is an array of strings.
+    
+    JSON to validate:
+    ---
+    {rubrics_json}
+    ---
+    
+    If validation passes, respond ONLY with: 'Validation successful. All rubrics are well-formed.'
+    If validation fails, respond ONLY with: 'Validation failed. Error: [Your explanation of the error].'
+    """
+    
+    lc_validator = GeminiLC(model_name=model_name, temperature=0.0)
+    
+    print("\n🧐 Validating rubric structure using LangChain wrapper...")
+    # 🌟 FIX: Use the standard .invoke() method
+    validation_result = lc_validator.invoke(validation_prompt)
+    
+    if "validation successful" in validation_result.lower():
+        print(f"✅ Rubric Validation Passed: {validation_result.strip()}")
+    else:
+        print(f"⚠️ Rubric Validation Warning: {validation_result.strip()}")
+
 
 def compute_rubric_set_id(parsed_rubrics: List[Dict[str, Any]]) -> str:
     """Computes a stable hash for the rubric set."""
@@ -80,13 +126,18 @@ def grade_submission(fname: str, parsed_rubrics: List[Dict[str, Any]], model_nam
 
     model = genai.GenerativeModel(model_name)
     raw_out = ""
+    file_obj = None # Define file_obj outside try block for cleanup
 
     # Try direct file upload
     try:
-        file_obj = genai.upload_file(fname)
+        if GEMINI_CLIENT is None:
+            # Try to initialize late if needed (shouldn't happen if main.py runs first)
+            GEMINI_CLIENT = genai.Client()
+
+        file_obj = GEMINI_CLIENT.files.upload(file=fname)
         resp = model.generate_content([grader_instruction, file_obj])
         raw_out = getattr(resp, "text", None) or str(resp)
-        genai.delete_file(file_obj.name) # clean up the uploaded file immediately
+
     except Exception as e:
         print(f"⚠️ Upload to Gemini failed ({e}), attempting local PDF extraction...")
         # Fallback to local PDF text extraction
@@ -101,6 +152,13 @@ def grade_submission(fname: str, parsed_rubrics: List[Dict[str, Any]], model_nam
             raise SystemExit("❌ Could not upload or extract text from the PDF.")
         resp = model.generate_content(grader_instruction + "\n\nProject Report:\n" + txt)
         raw_out = getattr(resp, "text", None) or str(resp)
+    finally:
+        # Clean up the uploaded file immediately, only if it was successfully uploaded
+        if file_obj:
+            try:
+                GEMINI_CLIENT.files.delete(name=file_obj.name) 
+            except Exception as e:
+                print(f"⚠️ Warning: Failed to delete uploaded file {file_obj.name}: {e}")
 
     # Parse JSON from Gemini output
     m = re.search(r"\{.*\}", raw_out, re.DOTALL)
