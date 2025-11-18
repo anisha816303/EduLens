@@ -1,0 +1,20 @@
+# --- Core LLM & Database ---
+google-generativeai
+pymongo
+PyPDF2
+
+# --- Backend API & Utilities ---
+fastapi
+uvicorn[standard]
+pydantic
+python-dotenv
+
+# --- AI Orchestration & Tooling ---
+langchain
+langchain-google-genai
+# Note: LangChain generally requires an LLM provider package like the one above.
+
+# --- Frontend & Visualization ---
+streamlit
+plotly
+
