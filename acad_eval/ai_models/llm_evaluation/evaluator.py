@@ -5,7 +5,7 @@ from typing import Dict, Any, List, Optional
 
 import google.generativeai as genai
 import PyPDF2
-
+from .ai_wrapper import GeminiLC
 
 # ---------------- Rubric extraction (match Cell 2) ----------------
 
@@ -239,3 +239,42 @@ Task:
     parsed_result["total_score"] = total
 
     return parsed_result
+
+def validate_rubrics_with_llm(parsed_rubrics: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Uses the GeminiLC wrapper to validate the structure and clarity 
+    of the extracted rubrics without looking at the PDF again.
+    """
+    # Initialize the wrapper
+    llm = GeminiLC(temperature=0.2)
+    
+    rubric_text = json.dumps(parsed_rubrics, indent=2)
+    
+    prompt = f"""
+    You are a Quality Assurance Auditor for academic rubrics.
+    Review the following JSON rubric criteria:
+    
+    {rubric_text}
+    
+    Check for:
+    1. Are the keys/titles descriptive?
+    2. Is the scale consistent (e.g., does it cover all performance levels)?
+    3. Are there duplicate criteria?
+    
+    Return a strict JSON object:
+    {{
+      "is_valid": true/false,
+      "warnings": ["list of potential issues strings"],
+      "suggestion": "One sentence on how to improve it (or 'Looks good')"
+    }}
+    """
+    
+    # Call the wrapper
+    response_str = llm._call(prompt)
+    
+    # Basic parsing (strip markdown)
+    clean_str = response_str.replace("```json", "").replace("```", "").strip()
+    try:
+        return json.loads(clean_str)
+    except:
+        return {"is_valid": True, "warnings": ["Could not parse validation response"], "suggestion": "Proceed with caution."}
