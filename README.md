@@ -1,2 +1,2 @@
-# Smart_Eval
+# EduLens
 Langchain based genai project
