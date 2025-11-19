@@ -20,6 +20,7 @@ def extract_bluebook_data(image_path: str) -> Dict[str, Any]:
     # --- 3. REFINE THE PROMPT ---
     prompt = """
     Analyze this Blue Book cover page as a structured table.
+    Step 0: Check if there are multiple bluebooks in one image, if present then for each bluebook perform the following steps and return the results for all the bluebooks as a nested json. If a single bluebook still proceed with the steps for that bluebook.
     Step 1: Locate the row where the 'Test' column says 'T1' or there is a Date present.
     Step 2: In that same row, read the handwritten number in the 'Marks Obtained' column.
     Step 3: Check the next row in the 'Marks Obtained' column, if its filled with marks, then add the average of the first and second rows marks and round it off.
@@ -27,7 +28,7 @@ def extract_bluebook_data(image_path: str) -> Dict[str, Any]:
     
     Return this JSON structure:
     {
-      "usn": "The Student Registration Number (e.g., 1MS...)",
+      "usn": "The Student Registration Number (e.g., 1MS22CS...)",
       "subject_code": "The Subject Code",
       "marks_obtained": "The handwritten value from the T1 row or Test Marks box "
     }
