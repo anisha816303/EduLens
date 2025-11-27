@@ -6,6 +6,7 @@ from datetime import datetime, timezone, timedelta
 # For this example, we'll keep the placeholder from your base code.
 GEMINI_API_KEY = "AIzaSyC9DEpz2yAS4dpfFNvy7JLj3DR0GqoqemQ" # Placeholder from base code
 
+
 # Model names
 RUBRIC_MODEL = "gemini-2.5-flash"   # Used for parsing rubrics (deterministic)
 GRADE_MODEL  = "gemini-2.5-flash"   # Used for grading

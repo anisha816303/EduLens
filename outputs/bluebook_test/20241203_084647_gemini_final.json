@@ -1,0 +1,50 @@
+{
+  "bluebooks": [
+    {
+      "usn": "1MS22CS051",
+      "subject_code": "CS52",
+      "cie_marks": {
+        "T1": {
+          "Q1": {
+            "a": "5",
+            "b": "0",
+            "c": "5",
+            "d": null
+          },
+          "Q2": {
+            "a": "8",
+            "b": "7",
+            "c": null,
+            "d": null
+          },
+          "Q3": {
+            "a": "7",
+            "b": null,
+            "c": null,
+            "d": null
+          }
+        },
+        "T2": {
+          "Q1": {
+            "a": null,
+            "b": null,
+            "c": null,
+            "d": null
+          },
+          "Q2": {
+            "a": null,
+            "b": null,
+            "c": null,
+            "d": null
+          },
+          "Q3": {
+            "a": null,
+            "b": null,
+            "c": null,
+            "d": null
+          }
+        }
+      }
+    }
+  ]
+}

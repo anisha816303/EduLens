@@ -1,56 +1,68 @@
-# ai_models/llm_evaluation/bluebook_extractor.py
+# acad_eval/ai_models/llm_evaluation/bluebook_extractor.py
 
-import json
-import PIL.Image
-import google.generativeai as genai 
-from typing import Dict, Any
+"""
+YOLO + OCR based bluebook extractor.
+
+Public API:
+
+    extract_bluebook_data(image_path: str) -> Dict[str, Any]
+
+Return format:
+
+{
+  "bluebooks": [
+    {
+      "usn": "...",
+      "course_code": "...",
+      "course_name": "...",
+      "marks_obtained": 30,
+      "raw_text": "...",
+      "bbox": [x1, y1, x2, y2]
+    },
+    ...
+  ]
+}
+"""
+
+from __future__ import annotations
+from typing import Dict, Any, List
+from pathlib import Path
+
+# NOTE: project root on sys.path is `acad_eval`,
+# so top-level packages are `ai_models`, `app`, etc.
+from ai_models.yolo_pipeline.pipeline import run_pipeline_and_call_gemini
+
+# --- Constants ---
+# Get the project root directory (the parent of 'acad_eval')
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+YOLO_WEIGHTS_PATH = PROJECT_ROOT / "acad_eval" / "ai_models" / "yolo_pipeline" / "weights" / "best.pt"
+OUTPUT_DIR = PROJECT_ROOT / "outputs"
+
 
 def extract_bluebook_data(image_path: str) -> Dict[str, Any]:
     """
-    Analyzes a bluebook cover page image to extract student metadata and marks
-    using the globally initialized GEMINI_CLIENT.
+    High-level entry point used by the rest of the project.
+
+    - Runs the YOLOv8 + Gemini pipeline.
+    - Returns the extracted data in the format expected by the application.
     """
-  
-    # --- 2. LOAD IMAGE ---
-    try:
-        img = PIL.Image.open(image_path)
-    except Exception as e:
-        return {"error": f"Error loading image: {e}"}
+    if not YOLO_WEIGHTS_PATH.exists():
+        raise FileNotFoundError(f"YOLO weights not found at {YOLO_WEIGHTS_PATH}")
 
-    # --- 3. REFINE THE PROMPT ---
-    prompt = """
-    Analyze this Blue Book cover page as a structured table.
-    Step 0: Check if there are multiple bluebooks in one image, if present then for each bluebook perform the following steps and return the results for all the bluebooks as a nested json. If a single bluebook still proceed with the steps for that bluebook.
-    Step 1: Locate the row where the 'Test' column says 'T1' or there is a Date present.
-    Step 2: In that same row, read the handwritten number in the 'Marks Obtained' column.
-    Step 3: Check the next row in the 'Marks Obtained' column, if its filled with marks, then add the average of the first and second rows marks and round it off.
-    Step 4: If that fails, look at the bottom summary table for a field labeled "Test Marks" or "Total".
+    # Ensure the output directory exists
+    OUTPUT_DIR.mkdir(exist_ok=True)
+
+    # Call the new pipeline
+    pipeline_result = run_pipeline_and_call_gemini(
+        image_path=image_path,
+        model_path=str(YOLO_WEIGHTS_PATH),
+        output_project=str(OUTPUT_DIR)
+    )
+
+    # The pipeline already returns data in the desired format.
+    # If the key is "gemini_result", we use that.
+    if "gemini_result" in pipeline_result:
+        return pipeline_result["gemini_result"]
     
-    Return this JSON structure:
-    {
-      "usn": "The Student Registration Number (e.g., 1MS22CS...)",
-      "subject_code": "The Subject Code",
-      "marks_obtained": "The handwritten value from the T1 row or Test Marks box "
-    }
-    """
-
-    # --- 4. GENERATE CONTENT ---
-    
-
-    print("Scanning grid structure...")
-    try:
-        model = genai.GenerativeModel("gemini-2.5-flash")
-
-        response = model.generate_content(
-            [
-                img,
-                prompt
-            ],
-            generation_config={
-                "response_mime_type": "application/json"
-            }
-        )
-
-        return json.loads(response.text)
-    except Exception as e:
-        return {"error": str(e)}
+    # Fallback if the structure is different
+    return pipeline_result
