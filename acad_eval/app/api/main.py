@@ -13,11 +13,10 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.
 from app.core.config import GEMINI_API_KEY, RUBRIC_MODEL, GRADE_MODEL, get_ist_timezone, now_utc
 from app.core.database import db_client
 from ai_models.llm_evaluation.evaluator import (
-    extract_rubrics_from_file, compute_rubric_set_id, grade_submission,
-    validate_rubrics_with_llm
+    extract_rubrics_from_file, compute_rubric_set_id, grade_submission
 )
-# 🌟 NEW IMPORT for Bluebook extraction
 from ai_models.llm_evaluation.bluebook_extractor import extract_bluebook_data
+
 
 # --- Initialize Gemini Client ---
 try:
@@ -44,7 +43,7 @@ def get_local_file_path(prompt_text: str) -> str:
 
 
 # =========================
-# 1️⃣ TEACHER FLOW - RUBRIC SETUP
+# 1️⃣ TEACHER FLOW
 # =========================
 def teacher_setup_rubric():
     """
@@ -89,24 +88,7 @@ def teacher_setup_rubric():
     # Extract rubrics using the evaluator module (Cell 2 logic)
     print("\n🧠 Asking Gemini to extract and understand rubrics...")
     parsed_rubrics = extract_rubrics_from_file(file_obj)
-    
-    # --- LLM VALIDATION ---
-    print("🔍 Validating rubric structure with AI Wrapper...")
-    validation_result = validate_rubrics_with_llm(parsed_rubrics)
-
-    if not validation_result.get("is_valid", True):
-        print("\n⚠️ WARNING: AI detected issues with the extracted rubric:")
-        for w in validation_result.get("warnings", []):
-            print(f"  - {w}")
-        print(f"  Suggestion: {validation_result.get('suggestion')}")
-        confirm = input("Do you want to proceed anyway? (y/n): ").strip().lower()
-        if confirm != 'y':
-            print("❌ Aborted by user.")
-            try: genai.delete_file(file_obj.name)
-            except: pass
-            return None
-    else:
-        print("✅ AI Validation Passed.")
+    print(parsed_rubrics)
 
     # Clean up uploaded file from Gemini
     try:
@@ -137,41 +119,41 @@ def teacher_setup_rubric():
     return rubric_set_id
 
 
-# 🌟 NEW FUNCTION: TEACHER FLOW - BLUEBOOK CHECK
-def teacher_bluebook_check():
+def teacher_extract_bluebook():
     """
-    Teacher uploads a bluebook image to extract student metadata and marks.
+    Teacher uploads a bluebook image.
+    We run the YOLO + Gemini pipeline to extract marks and other details.
     """
     print("\n📘 [TEACHER MODE] Bluebook Marks Extraction")
     print("📸 Enter the **FULL PATH** to the Bluebook cover page IMAGE (e.g., /Users/user/Desktop/bluebook.jpg)")
-    
-    image_filename = get_local_file_path("   -> Bluebook Image Path: ")
-    if not image_filename:
+
+    image_path = get_local_file_path("   -> Bluebook Image Path: ")
+    if not image_path:
         raise SystemExit("❌ No image file provided. Cannot continue.")
 
-    print(f"✅ Loaded image file: {image_filename}")
+    print(f"✅ Loaded image file: {image_path}")
+    print("\n🧠 Running Bluebook extraction pipeline... (This may take a moment)")
 
-    # Run extraction using the new module
-    print("\n🧠 Starting Gemini Bluebook Extraction...")
-    
-    # Pass the API key to the extractor function
-    extracted_data = extract_bluebook_data(image_filename)
+    try:
+        # This function now calls your new YOLO pipeline
+        extraction_result = extract_bluebook_data(image_path)
 
-    if "error" in extracted_data:
-        print(f"❌ Extraction Failed: {extracted_data['error']}")
-        return
-        
-    print("\n✅ Bluebook Data Extracted Successfully!\n")
-    print(json.dumps(extracted_data, indent=4))
-    
-    print("\nNote: Data is not persisted to the database in this mode.")
+        print("\n✅ Extraction Complete!")
+        print("=" * 30)
+        # Pretty print the JSON result
+        print(json.dumps(extraction_result, indent=2))
+        print("=" * 30)
+
+    except FileNotFoundError as e:
+        print(f"❌ ERROR: {e}")
+    except Exception as e:
+        print(f"\nAn unexpected error occurred during pipeline execution: {e}")
 
 
 # =========================
 # 2️⃣ STUDENT FLOW
 # =========================
 def student_grade_submission():
-    # ... (function body remains the same as in the last turn's main.py) ...
     """
     Student uploads a report PDF for an EXISTING rubric_set_id.
     We read rubric metadata from DB, enforce deadline & attempts,
@@ -268,9 +250,9 @@ def student_grade_submission():
 
 
 # =========================
-# 3️⃣ ENTRY POINT (Modified Menu)
+# 3️⃣ ENTRY POINT
 # =========================
-def run_cli():
+if __name__ == "__main__":
     try:
         print("\n===============================")
         print(" Academic Evaluation System CLI")
@@ -283,16 +265,15 @@ def run_cli():
         if mode == "1":
             print("\nTEACHER Mode Selected:")
             print("  1. Rubric Setup (PDF Grading)")
-            print("  2. Bluebook Marks Check (Image Extraction)") # 🌟 NEW OPTION
-            teacher_option = input("\nEnter 1 or 2: ").strip()
-            
-            if teacher_option == "1":
+            print("  2. Bluebook Marks Check (Image Extraction)")
+            teacher_mode = input("\nEnter 1 or 2: ").strip()
+            if teacher_mode == "1":
                 teacher_setup_rubric()
-            elif teacher_option == "2":
-                teacher_bluebook_check() # 🌟 NEW CALL
+            elif teacher_mode == "2":
+                teacher_extract_bluebook()
             else:
-                print("❌ Invalid choice. Please run again and choose 1 or 2.")
-                
+                print("❌ Invalid choice for Teacher mode.")
+
         elif mode == "2":
             student_grade_submission()
         else:
@@ -302,7 +283,3 @@ def run_cli():
         print(e)
     except Exception as e:
         print(f"\nFATAL ERROR: {e}")
-
-
-if __name__ == "__main__":
-    run_cli()
