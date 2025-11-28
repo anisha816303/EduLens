@@ -22,6 +22,9 @@ st.markdown("""
         [data-testid="stSidebarNav"] {
             display: none;
         }
+        button[kind="header"] {
+            display: none;
+        }
     </style>
 """, unsafe_allow_html=True)
 
