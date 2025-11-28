@@ -25,3 +25,4 @@ paddleocr==2.7.0.3
 opencv-python
 Pillow
 numpy
+google-generativeai certifi
