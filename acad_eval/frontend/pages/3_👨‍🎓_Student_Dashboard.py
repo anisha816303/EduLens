@@ -8,13 +8,14 @@ from datetime import datetime
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
 sys.path.insert(0, project_root)
 
+# --- IMPORTS FROM API ONLY (NO DIRECT BACKEND ACCESS) ---
 from app.api.frontend_api import (
     list_submissions_for_student, 
     get_rubric_meta,
-    grade_student_submission
+    grade_student_submission,
+    get_student_submission_record  # <--- NEW WRAPPER
 )
 from app.core.config import get_ist_timezone, now_utc
-from app.core.database import db_client
 from frontend.pages.utils.session_manager import check_authentication
 
 st.set_page_config(page_title="Student Dashboard", page_icon="👨‍🎓", layout="wide")
@@ -48,7 +49,7 @@ with tab1:
     )
     
     if rubric_set_id:
-        # Fetch rubric metadata
+        # API CALL: Get metadata
         rubric_meta = get_rubric_meta(rubric_set_id)
         
         if rubric_meta:
@@ -77,12 +78,12 @@ with tab1:
                 st.info(f"🔁 **Max Attempts:** {max_attempts if max_attempts else 'Unlimited'}")
             
             with col3:
-                # Get current attempts
-                record = db_client.get_submission_record(st.session_state.user_id, rubric_set_id)
+                # API CALL: Get current attempts (Replaces direct DB call)
+                record = get_student_submission_record(st.session_state.user_id, rubric_set_id)
                 used_attempts = record.get('attempt_number', 0) if record else 0
                 st.info(f"📝 **Used Attempts:** {used_attempts}")
             
-            # Check if submission is allowed
+            # Check if submission is allowed (UI Validation)
             can_submit = True
             error_msg = ""
             
@@ -127,43 +128,64 @@ with tab1:
                     if st.button("🚀 Submit for Grading", type="primary", use_container_width=True):
                         with st.spinner("🧠 AI is grading your submission... This may take a minute..."):
                             try:
+                                # API CALL: Grade submission
                                 result = grade_student_submission(
                                     st.session_state.user_id,
                                     temp_path,
                                     rubric_set_id
                                 )
                                 
-                                st.success("✅ Grading Complete!")
-                                st.balloons()
-                                
-                                parsed_result = result['result']
-                                
-                                # Display score
-                                total_score = parsed_result.get('total_score', 0)
-                                parsed_rubrics = rubric_meta.get('parsed_rubrics', [])
-                                max_score = len(parsed_rubrics) * 10
-                                
-                                st.markdown(f"### 🎯 Your Score: **{total_score} / {max_score}**")
-                                
-                                # Display detailed feedback
-                                st.markdown("### 📝 Detailed Feedback")
-                                
-                                evaluations = parsed_result.get('evaluations', [])
-                                for i, eval_item in enumerate(evaluations, 1):
-                                    with st.expander(f"Criterion {i}: {eval_item.get('criterion', 'N/A')}", expanded=True):
-                                        st.markdown(f"**Score:** {eval_item.get('score', 0)} / 10")
-                                        st.markdown(f"**Feedback:** {eval_item.get('feedback', 'No feedback')}")
-                                
-                                # Overall feedback
-                                if parsed_result.get('feedback'):
-                                    st.markdown("### 💬 Overall Feedback")
-                                    st.info(parsed_result.get('feedback'))
+                                # Check for errors in result
+                                if "error" in result:
+                                    st.error(f"❌ Error: {result['error']}")
+                                else:
+                                    st.success("✅ Grading Complete!")
+                                    st.balloons()
+                                    
+                                    # Access the nested result dictionary
+                                    parsed_result = result.get('result', {})
+                                    
+                                    # Display score
+                                    total_score = parsed_result.get('total_score', 0)
+                                    parsed_rubrics = rubric_meta.get('parsed_rubrics', [])
+                                    max_score = len(parsed_rubrics) * 10
+                                    
+                                    st.markdown(f"### 🎯 Your Score: **{total_score} / {max_score}**")
+                                    
+                                    # Display detailed feedback
+                                    st.markdown("### 📝 Detailed Feedback")
+                                    
+                                    evaluations = parsed_result.get('evaluations', [])
+                                    
+                                    if not evaluations:
+                                        st.warning("⚠️ No detailed evaluations returned. Showing raw output:")
+                                        st.json(parsed_result)
+                                    else:
+                                        for i, eval_item in enumerate(evaluations, 1):
+                                            criterion = eval_item.get('criterion', 'Unknown Criterion')
+                                            score = eval_item.get('score', 0)
+                                            feedback = eval_item.get('feedback', 'No feedback provided.')
+                                            
+                                            with st.expander(f"Criterion {i}: {criterion} ({score}/10)", expanded=True):
+                                                st.markdown(f"**Feedback:** {feedback}")
+                                                st.progress(min(score / 10, 1.0))
+                                    
+                                    # Overall feedback
+                                    if parsed_result.get('feedback'):
+                                        st.markdown("### 💬 Overall Feedback")
+                                        st.info(parsed_result.get('feedback'))
+                                    
+                                    # Show raw JSON for debugging if needed
+                                    with st.expander("🔍 View Raw Grading Data"):
+                                        st.json(parsed_result)
                                 
                                 # Cleanup
                                 os.unlink(temp_path)
                                 
                             except Exception as e:
                                 st.error(f"❌ Grading failed: {str(e)}")
+                                import traceback
+                                st.code(traceback.format_exc())
                                 if os.path.exists(temp_path):
                                     os.unlink(temp_path)
         else:
@@ -173,16 +195,20 @@ with tab1:
 with tab2:
     st.header("📊 My Submission History")
     
+    # API CALL: Get submissions
     submissions = list_submissions_for_student(st.session_state.user_id)
     
     if not submissions:
         st.info("📭 No submissions yet. Submit your first report to get started!")
     else:
         for submission in submissions:
+            rubric_id = submission.get('rubric_set_id', 'N/A')
+            attempt = submission.get('attempt_number', 1)
+            result = submission.get('result', {})
+            total_score = result.get('total_score', 0)
+            
             with st.expander(
-                f"🗂️ Rubric: {submission.get('rubric_set_id', 'N/A')[:16]}... | "
-                f"Attempt: {submission.get('attempt_number', 1)} | "
-                f"Score: {submission.get('result', {}).get('total_score', 0)}"
+                f"🗂️ Rubric: {rubric_id[:10]}... | Attempt: {attempt} | Score: {total_score}"
             ):
                 col1, col2 = st.columns(2)
                 
@@ -191,13 +217,18 @@ with tab2:
                     st.markdown(f"**📁 File:** {submission.get('filename', 'N/A')}")
                 
                 with col2:
-                    result = submission.get('result', {})
-                    total_score = result.get('total_score', 0)
                     rubrics = submission.get('rubrics', [])
                     max_score = len(rubrics) * 10
                     st.markdown(f"**🎯 Score:** {total_score} / {max_score}")
-                    st.markdown(f"**🔢 Attempt:** {submission.get('attempt_number', 1)}")
                 
                 st.markdown("---")
-                st.markdown("**📝 Detailed Results:**")
-                st.json(result, expanded=False)
+                st.markdown("### 📝 Feedback Details")
+                
+                evaluations = result.get('evaluations', [])
+                if evaluations:
+                    for eval_item in evaluations:
+                        st.markdown(f"**{eval_item.get('criterion', 'Criterion')}**: {eval_item.get('score', 0)}/10")
+                        st.caption(eval_item.get('feedback', 'No feedback'))
+                        st.divider()
+                else:
+                    st.json(result)

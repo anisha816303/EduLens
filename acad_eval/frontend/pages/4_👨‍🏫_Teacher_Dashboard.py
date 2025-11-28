@@ -2,6 +2,7 @@ import streamlit as st
 import sys
 import os
 import json
+import pandas as pd
 from datetime import datetime
 
 # Add project root to path
@@ -12,7 +13,9 @@ from app.api.frontend_api import (
     list_rubric_sets,
     extract_and_save_rubric_from_pdf,
     list_submissions_for_rubric,
-    extract_bluebook
+    extract_bluebook,
+    save_bluebook_results,
+    get_bluebook_history
 )
 from app.core.config import get_ist_timezone
 from frontend.pages.utils.session_manager import check_authentication
@@ -72,24 +75,24 @@ with tab1:
             if not uploaded_rubric:
                 st.error("⚠️ Please upload a rubric PDF file")
             else:
-                # Save uploaded file
                 import tempfile
                 with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_file:
                     tmp_file.write(uploaded_rubric.getbuffer())
                     temp_path = tmp_file.name
                 
-                # Prepare deadline
                 deadline_iso = None
+                deadline_display_str = "None (Unlimited)"
                 if deadline_date:
                     try:
                         deadline_dt = datetime.combine(deadline_date, deadline_time)
                         deadline_dt = deadline_dt.replace(tzinfo=get_ist_timezone())
                         deadline_iso = deadline_dt.isoformat()
+                        deadline_display_str = deadline_dt.strftime('%Y-%m-%d %H:%M:%S %Z')
                     except:
                         pass
                 
-                # Prepare max attempts
                 final_max_attempts = None if unlimited else max_attempts
+                attempts_str = "Unlimited" if unlimited else str(max_attempts)
                 
                 with st.spinner("🧠 AI is extracting rubric criteria... Please wait..."):
                     try:
@@ -103,19 +106,28 @@ with tab1:
                         if result.get('error'):
                             st.error(f"❌ Error: {result['error']}")
                         else:
-                            st.success("✅ Rubric created successfully!")
+                            st.success("✅ Rubric setup complete.")
                             st.balloons()
                             
                             rubric_set_id = result['rubric_set_id']
                             parsed_rubrics = result['parsed_rubrics']
                             
-                            st.markdown(f"### 🎯 Rubric Set ID: `{rubric_set_id}`")
-                            st.warning("⚠️ Share this ID with your students so they can submit reports!")
+                            # --- LOGIC PARITY: Display exact same confirmation info as main.py ---
+                            st.markdown("### 📝 Rubric Setup Summary")
+                            st.info(f"""
+                            **Rubric Set ID:** `{rubric_set_id}`
                             
-                            st.markdown("### 📋 Extracted Rubric Criteria:")
+                            **Deadline (IST):** {deadline_display_str}
+                            
+                            **Max Attempts:** {attempts_str}
+                            
+                            **Parsed Criteria:** {len(parsed_rubrics)} criteria
+                            """)
+                            st.warning("📌 Share this Rubric Set ID with students so they can submit against it.")
+                            
+                            st.markdown("### 🧠 Extracted Logic (Raw JSON):")
                             st.json(parsed_rubrics, expanded=True)
                         
-                        # Cleanup
                         os.unlink(temp_path)
                         
                     except Exception as e:
@@ -158,65 +170,241 @@ with tab2:
                     st.markdown(f"**📝 Criteria Count:** {len(parsed_rubrics)}")
                 
                 st.markdown("---")
-                st.markdown("**📋 Rubric Details:**")
-                st.json(parsed_rubrics, expanded=False)
+                st.markdown("### 📋 Rubric Criteria")
+                
+                if parsed_rubrics:
+                    for i, criterion in enumerate(parsed_rubrics, 1):
+                        title = criterion.get('title', 'Untitled')
+                        desc = criterion.get('description', 'No description')
+                        score = criterion.get('max_score', 10)
+                        
+                        with st.container():
+                            st.markdown(f"**{i}. {title}** (Max Score: {score})")
+                            st.caption(desc)
+                else:
+                    st.warning("⚠️ No criteria found for this rubric.")
                 
                 st.markdown("---")
-                st.markdown("**📊 Student Submissions:**")
+                st.markdown("### 📊 Student Submissions")
                 
                 submissions = list_submissions_for_rubric(rubric_id)
                 
                 if not submissions:
                     st.info("📭 No submissions yet for this rubric.")
                 else:
+                    sub_data = []
                     for sub in submissions:
-                        student_id = sub.get('student_id', 'N/A')
-                        attempt = sub.get('attempt_number', 1)
-                        score = sub.get('result', {}).get('total_score', 0)
-                        timestamp = sub.get('timestamp', 'N/A')
-                        
-                        st.markdown(f"- **Student:** {student_id} | **Attempt:** {attempt} | **Score:** {score} | **Date:** {timestamp}")
+                        sub_data.append({
+                            "Student ID": sub.get('student_id', 'N/A'),
+                            "Attempt": sub.get('attempt_number', 1),
+                            "Score": sub.get('result', {}).get('total_score', 0),
+                            "Date": sub.get('timestamp', 'N/A')[:16].replace('T', ' ')
+                        })
+                    
+                    st.dataframe(pd.DataFrame(sub_data), use_container_width=True)
 
-# TAB 3: Bluebook Extraction
+# TAB 3: Bluebook Extraction (UPDATED)
 with tab3:
     st.header("📸 Bluebook Marks Extraction")
     
-    st.info("ℹ️ Upload an image of a bluebook cover page to extract student information and marks using AI.")
+    st.info("ℹ️ Upload an image of bluebook answer sheets. Our AI system will detect and extract marks automatically using YOLO + Gemini.")
     
-    uploaded_image = st.file_uploader(
-        "Upload Bluebook Image",
-        type=['jpg', 'jpeg', 'png'],
-        help="Take a clear photo of the bluebook cover page"
-    )
+    extraction_tab, history_tab = st.tabs(["🔍 Extract Marks", "📋 Extraction History"])
     
-    if uploaded_image:
-        # Display uploaded image
-        st.image(uploaded_image, caption="Uploaded Bluebook Image", use_container_width=True)
+    with extraction_tab:
+        uploaded_image = st.file_uploader(
+            "Upload Bluebook Image",
+            type=['jpg', 'jpeg', 'png'],
+            help="Upload a clear image of bluebook answer sheets",
+            key="bluebook_uploader"
+        )
         
-        if st.button("🧠 Extract Data", use_container_width=True, type="primary"):
-            # Save image temporarily
-            import tempfile
-            with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(uploaded_image.name)[1]) as tmp_file:
-                tmp_file.write(uploaded_image.getbuffer())
-                temp_img_path = tmp_file.name
+        if uploaded_image:
+            col1, col2 = st.columns([2, 1])
             
-            with st.spinner("🧠 AI is extracting data from bluebook... Please wait..."):
-                try:
-                    extracted_data = extract_bluebook(temp_img_path)
-                    
-                    if extracted_data.get('error'):
-                        st.error(f"❌ Extraction failed: {extracted_data['error']}")
-                    else:
-                        st.success("✅ Data extracted successfully!")
-                        st.balloons()
+            with col1:
+                st.image(uploaded_image, caption="Uploaded Bluebook Image", use_container_width=True)
+            
+            with col2:
+                st.markdown("### 📋 Image Info")
+                st.markdown(f"**Filename:** {uploaded_image.name}")
+                st.markdown(f"**Size:** {uploaded_image.size / 1024:.2f} KB")
+                st.markdown(f"**Type:** {uploaded_image.type}")
+            
+            if st.button("🧠 Extract Bluebook Data", use_container_width=True, type="primary", key="extract_btn"):
+                import tempfile
+                with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(uploaded_image.name)[1]) as tmp_file:
+                    tmp_file.write(uploaded_image.getbuffer())
+                    temp_img_path = tmp_file.name
+                
+                with st.spinner("🔍 YOLO is detecting bluebooks... 🧠 Gemini is extracting marks... This may take a minute..."):
+                    try:
+                        extracted_data = extract_bluebook(temp_img_path)
                         
-                        st.markdown("### 📋 Extracted Information:")
-                        st.json(extracted_data, expanded=True)
-                    
-                    # Cleanup
-                    os.unlink(temp_img_path)
-                    
-                except Exception as e:
-                    st.error(f"❌ Extraction error: {str(e)}")
-                    if os.path.exists(temp_img_path):
+                        if extracted_data.get('error'):
+                            st.error(f"❌ Extraction failed: {extracted_data['error']}")
+                        else:
+                            st.success("✅ Bluebook data extracted successfully!")
+                            st.balloons()
+                            
+                            # Save results
+                            save_bluebook_results(
+                                st.session_state.user_id,
+                                extracted_data,
+                                uploaded_image.name
+                            )
+                            
+                            # --- LOGIC PARITY: Show raw result just like terminal ---
+                            st.markdown("### 📝 Extraction Results (Raw)")
+                            st.json(extracted_data, expanded=False)
+                            
+                            # Display summary
+                            total_bluebooks = extracted_data.get('total_bluebooks', 0)
+                            st.markdown(f"### 📊 Extraction Summary")
+                            st.metric("Total Bluebooks Detected", total_bluebooks)
+                            
+                            # Display detailed results
+                            bluebooks = extracted_data.get('bluebooks', [])
+                            
+                            if bluebooks:
+                                st.markdown("### 📋 Extracted Bluebook Data")
+                                
+                                for idx, bluebook in enumerate(bluebooks, 1):
+                                    with st.expander(f"📘 Bluebook {idx}: USN {bluebook.get('usn', 'N/A')}", expanded=True):
+                                        col1, col2 = st.columns(2)
+                                        
+                                        with col1:
+                                            st.markdown(f"**USN:** {bluebook.get('usn', 'N/A')}")
+                                            st.markdown(f"**Subject Code:** {bluebook.get('subject_code', 'N/A')}")
+                                        
+                                        with col2:
+                                            cie_marks = bluebook.get('cie_marks', {})
+                                            t1_marks = cie_marks.get('T1', {})
+                                            t2_marks = cie_marks.get('T2', {})
+                                            st.markdown("**CIE Marks Structure:**")
+                                            st.markdown(f"- T1: {len(t1_marks)} questions")
+                                            st.markdown(f"- T2: {len(t2_marks)} questions")
+                                        
+                                        st.markdown("---")
+                                                                                # --- IMPROVED DISPLAY: Structured Marks Grid ---
+                                        st.markdown("---")
+                                        st.markdown("### 📊 Detailed Marks Grid")
+                                        
+                                        cie_marks = bluebook.get('cie_marks', {})
+                                        
+                                        # Create two columns for T1 and T2
+                                        t1_col, t2_col = st.columns(2)
+                                        
+                                        with t1_col:
+                                            st.markdown("#### 📝 Test 1 (T1)")
+                                            t1_data = cie_marks.get('T1', {})
+                                            if t1_data:
+                                                # Flatten T1 data for table
+                                                rows = []
+                                                for q_num, parts in t1_data.items():
+                                                    row = {"Question": q_num}
+                                                    # Sort parts to ensure a, b, c, d order
+                                                    for part in sorted(parts.keys()):
+                                                        val = parts[part]
+                                                        row[f"Part ({part})"] = val if val is not None else "-"
+                                                    rows.append(row)
+                                                
+                                                if rows:
+                                                    st.dataframe(pd.DataFrame(rows).set_index("Question"), use_container_width=True)
+                                                else:
+                                                    st.info("No marks found for T1")
+                                            else:
+                                                st.info("No T1 data available")
+
+                                        with t2_col:
+                                            st.markdown("#### 📝 Test 2 (T2)")
+                                            t2_data = cie_marks.get('T2', {})
+                                            if t2_data:
+                                                # Flatten T2 data for table
+                                                rows = []
+                                                for q_num, parts in t2_data.items():
+                                                    row = {"Question": q_num}
+                                                    for part in sorted(parts.keys()):
+                                                        val = parts[part]
+                                                        row[f"Part ({part})"] = val if val is not None else "-"
+                                                    rows.append(row)
+                                                
+                                                if rows:
+                                                    st.dataframe(pd.DataFrame(rows).set_index("Question"), use_container_width=True)
+                                                else:
+                                                    st.info("No marks found for T2")
+                                            else:
+                                                st.info("No T2 data available")
+
+                                
+                                # Create downloadable CSV
+                                st.markdown("---")
+                                st.markdown("### 💾 Download Results")
+                                
+                                csv_data = []
+                                for bluebook in bluebooks:
+                                    row = {
+                                        'USN': bluebook.get('usn', ''),
+                                        'Subject_Code': bluebook.get('subject_code', ''),
+                                    }
+                                    cie_marks = bluebook.get('cie_marks', {})
+                                    for test in ['T1', 'T2']:
+                                        test_data = cie_marks.get(test, {})
+                                        for q_num in ['Q1', 'Q2', 'Q3']:
+                                            q_data = test_data.get(q_num, {})
+                                            for part in ['a', 'b', 'c', 'd']:
+                                                col_name = f"{test}_{q_num}_{part}"
+                                                row[col_name] = q_data.get(part, '')
+                                    csv_data.append(row)
+                                
+                                df = pd.DataFrame(csv_data)
+                                csv = df.to_csv(index=False)
+                                
+                                st.download_button(
+                                    label="📥 Download as CSV",
+                                    data=csv,
+                                    file_name=f"bluebook_marks_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                                    mime="text/csv",
+                                    use_container_width=True
+                                )
+                                
+                                json_str = json.dumps(extracted_data, indent=2)
+                                st.download_button(
+                                    label="📥 Download as JSON",
+                                    data=json_str,
+                                    file_name=f"bluebook_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+                                    mime="application/json",
+                                    use_container_width=True
+                                )
+                        
                         os.unlink(temp_img_path)
+                        
+                    except Exception as e:
+                        st.error(f"❌ Extraction error: {str(e)}")
+                        import traceback
+                        with st.expander("🔍 View Error Details"):
+                            st.code(traceback.format_exc())
+                        if os.path.exists(temp_img_path):
+                            os.unlink(temp_img_path)
+    
+    with history_tab:
+        st.markdown("### 📋 Previous Extractions")
+        
+        history = get_bluebook_history(st.session_state.user_id)
+        
+        if not history:
+            st.info("📭 No extraction history yet. Extract your first bluebook to see results here!")
+        else:
+            for idx, record in enumerate(history, 1):
+                with st.expander(
+                    f"📸 {record.get('image_filename', 'Unknown')} | "
+                    f"{record.get('total_bluebooks', 0)} bluebook(s) | "
+                    f"{record.get('extraction_date', 'N/A')[:10]}"
+                ):
+                    st.markdown(f"**Extraction Date:** {record.get('extraction_date', 'N/A')}")
+                    st.markdown(f"**Total Bluebooks:** {record.get('total_bluebooks', 0)}")
+                    st.markdown(f"**Image:** {record.get('image_filename', 'N/A')}")
+                    
+                    st.markdown("---")
+                    st.markdown("**📊 Extracted Data:**")
+                    st.json(record.get('bluebooks', []), expanded=False)
