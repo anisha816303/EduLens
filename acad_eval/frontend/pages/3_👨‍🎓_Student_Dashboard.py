@@ -30,10 +30,10 @@ st.markdown(f"**Welcome, {st.session_state.user_name}!**")
 with st.sidebar:
     st.header("🎯 Quick Actions")
     if st.button("🏠 Home", use_container_width=True):
-        st.switch_page("app.py")
+        st.switch_page("EduLens.py")
     if st.button("🚪 Logout", use_container_width=True):
         st.session_state.clear()
-        st.switch_page("app.py")
+        st.switch_page("EduLens.py")
 
 # Main content tabs
 tab1, tab2 = st.tabs(["📤 Submit Report", "📊 My Submissions"])

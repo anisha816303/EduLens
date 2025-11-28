@@ -64,7 +64,7 @@ st.markdown("---")
 col1, col2 = st.columns(2)
 with col1:
     if st.button("← Back to Home"):
-        st.switch_page("app.py")
+        st.switch_page("EduLens.py")
 with col2:
     if st.button("📝 Don't have an account? Register"):
         st.switch_page("pages/2_📝_Register.py")

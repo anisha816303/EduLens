@@ -89,14 +89,14 @@ if st.session_state.get('registration_success', False):
     with col2:
         if st.button("🏠 Go to Home", use_container_width=True):
             st.session_state.registration_success = False
-            st.switch_page("app.py")
+            st.switch_page("EduLens.py")
 
 # Show regular navigation at the bottom
 st.markdown("---")
 col1, col2 = st.columns(2)
 with col1:
     if st.button("← Back to Home", key="back_home"):
-        st.switch_page("app.py")
+        st.switch_page("EduLens.py")
 with col2:
     if st.button("🔑 Already have an account? Login", key="go_login"):
         st.switch_page("pages/1_🔐_Login.py")
