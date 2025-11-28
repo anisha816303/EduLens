@@ -2,6 +2,7 @@ import streamlit as st
 import sys
 import os
 
+
 # Add the project root to Python path
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
 sys.path.insert(0, project_root)
@@ -13,6 +14,18 @@ from frontend.pages.utils.session_manager import init_session_state
 st.set_page_config(page_title="Login", page_icon="🔐", layout="centered")
 
 init_session_state()
+
+# Hide sidebar
+st.markdown("""
+    <style>
+        [data-testid="stSidebar"] {
+            display: none;
+        }
+        [data-testid="stSidebarNav"] {
+            display: none;
+        }
+    </style>
+""", unsafe_allow_html=True)
 
 st.title("🔐 Login")
 

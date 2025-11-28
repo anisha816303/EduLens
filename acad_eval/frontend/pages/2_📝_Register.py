@@ -13,6 +13,18 @@ st.set_page_config(page_title="Register", page_icon="📝", layout="centered")
 
 init_session_state()
 
+# Hide sidebar
+st.markdown("""
+    <style>
+        [data-testid="stSidebar"] {
+            display: none;
+        }
+        [data-testid="stSidebarNav"] {
+            display: none;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 st.title("📝 Register New Account")
 
 user_type = st.radio("Select your role:", ["Student", "Teacher"], horizontal=True)

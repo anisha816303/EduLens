@@ -23,6 +23,15 @@ st.set_page_config(page_title="Student Dashboard", page_icon="👨‍🎓", layo
 # Check authentication
 check_authentication('student')
 
+# Hide the default Streamlit page navigation sidebar
+st.markdown("""
+    <style>
+        [data-testid="stSidebarNav"] {
+            display: none;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 st.title("👨‍🎓 Student Dashboard")
 st.markdown(f"**Welcome, {st.session_state.user_name}!**")
 

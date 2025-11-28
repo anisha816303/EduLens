@@ -2,6 +2,7 @@ import streamlit as st
 import sys
 import os
 
+
 # Add project root to path
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, project_root)
@@ -13,15 +14,25 @@ st.set_page_config(
     page_title="Academic Evaluation System",
     page_icon="📚",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
 # Initialize session state
 init_session_state()
 
-# Custom CSS
+# Custom CSS - Hide sidebar and page navigation
 st.markdown("""
 <style>
+    /* Hide the entire sidebar */
+    [data-testid="stSidebar"] {
+        display: none;
+    }
+    
+    /* Hide page navigation */
+    [data-testid="stSidebarNav"] {
+        display: none;
+    }
+    
     .main-header {
         font-size: 3rem;
         font-weight: bold;
