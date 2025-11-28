@@ -38,10 +38,10 @@ with st.sidebar:
         st.switch_page("app.py")
 
 # Main tabs
-tab1, tab2, tab3 = st.tabs(["📝 Create Rubric", "📊 View Rubrics & Submissions", "📸 Bluebook Extraction"])
+tab2, tab3, tab1 = st.tabs(["📝 Create Rubric", "📊 View Rubrics & Submissions", "📸 Bluebook Extraction"])
 
 # TAB 1: Create Rubric
-with tab1:
+with tab2:
     st.header("📝 Create New Rubric Set")
     
     st.info("ℹ️ Upload a PDF containing your grading rubric. AI will extract the criteria automatically.")
@@ -136,7 +136,7 @@ with tab1:
                             os.unlink(temp_path)
 
 # TAB 2: View Rubrics & Submissions
-with tab2:
+with tab3:
     st.header("📊 All Rubric Sets & Submissions")
     
     rubrics = list_rubric_sets()
@@ -204,7 +204,7 @@ with tab2:
                     st.dataframe(pd.DataFrame(sub_data), use_container_width=True)
 
 # TAB 3: Bluebook Extraction (UPDATED)
-with tab3:
+with tab1:
     st.header("📸 Bluebook Marks Extraction")
     
     st.info("ℹ️ Upload an image of bluebook answer sheets. Our AI system will detect and extract marks automatically using YOLO + Gemini.")
@@ -212,46 +212,58 @@ with tab3:
     extraction_tab, history_tab = st.tabs(["🔍 Extract Marks", "📋 Extraction History"])
     
     with extraction_tab:
-        uploaded_image = st.file_uploader(
-            "Upload Bluebook Image",
+        uploaded_images = st.file_uploader(
+            "Upload Bluebook Image(s)",
             type=['jpg', 'jpeg', 'png'],
-            help="Upload a clear image of bluebook answer sheets",
-            key="bluebook_uploader"
+            help="Upload one or more clear images of bluebook answer sheets",
+            key="bluebook_uploader",
+            accept_multiple_files=True
         )
         
-        if uploaded_image:
+        if uploaded_images:
             col1, col2 = st.columns([2, 1])
             
             with col1:
-                st.image(uploaded_image, caption="Uploaded Bluebook Image", use_container_width=True)
+                # Show first image or a grid? Just show count for now or a carousel
+                st.image(uploaded_images[0], caption=f"First Image: {uploaded_images[0].name}", use_container_width=True)
+                if len(uploaded_images) > 1:
+                    st.caption(f"...and {len(uploaded_images)-1} more image(s)")
             
             with col2:
-                st.markdown("### 📋 Image Info")
-                st.markdown(f"**Filename:** {uploaded_image.name}")
-                st.markdown(f"**Size:** {uploaded_image.size / 1024:.2f} KB")
-                st.markdown(f"**Type:** {uploaded_image.type}")
+                st.markdown("### 📋 Upload Info")
+                st.markdown(f"**Files:** {len(uploaded_images)}")
+                total_size = sum(f.size for f in uploaded_images)
+                st.markdown(f"**Total Size:** {total_size / 1024:.2f} KB")
             
             if st.button("🧠 Extract Bluebook Data", use_container_width=True, type="primary", key="extract_btn"):
                 import tempfile
-                with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(uploaded_image.name)[1]) as tmp_file:
-                    tmp_file.write(uploaded_image.getbuffer())
-                    temp_img_path = tmp_file.name
+                temp_paths = []
                 
-                with st.spinner("🔍 YOLO is detecting bluebooks... 🧠 Gemini is extracting marks... This may take a minute..."):
+                # Save all uploaded files to temp
+                for uploaded_file in uploaded_images:
+                    suffix = os.path.splitext(uploaded_file.name)[1]
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp_file:
+                        tmp_file.write(uploaded_file.getbuffer())
+                        temp_paths.append(tmp_file.name)
+                
+                with st.spinner(f"🔍 Processing {len(temp_paths)} images... YOLO detecting... Gemini extracting..."):
                     try:
-                        extracted_data = extract_bluebook(temp_img_path)
+                        extracted_data = extract_bluebook(temp_paths)
                         
                         if extracted_data.get('error'):
                             st.error(f"❌ Extraction failed: {extracted_data['error']}")
                         else:
-                            st.success("✅ Bluebook data extracted successfully!")
+                            st.success(f"✅ Extracted data from {len(temp_paths)} images successfully!")
                             st.balloons()
                             
                             # Save results
+                            # Create a combined filename string or just use the first one + count
+                            combined_filename = f"{uploaded_images[0].name} (+{len(uploaded_images)-1} others)" if len(uploaded_images) > 1 else uploaded_images[0].name
+                            
                             save_bluebook_results(
                                 st.session_state.user_id,
                                 extracted_data,
-                                uploaded_image.name
+                                combined_filename
                             )
                             
                             # --- LOGIC PARITY: Show raw result just like terminal ---
@@ -377,15 +389,21 @@ with tab3:
                                     use_container_width=True
                                 )
                         
-                        os.unlink(temp_img_path)
+                        # Cleanup temp files
+                        for p in temp_paths:
+                            if os.path.exists(p):
+                                os.unlink(p)
                         
                     except Exception as e:
                         st.error(f"❌ Extraction error: {str(e)}")
                         import traceback
                         with st.expander("🔍 View Error Details"):
                             st.code(traceback.format_exc())
-                        if os.path.exists(temp_img_path):
-                            os.unlink(temp_img_path)
+                        
+                        # Cleanup on error
+                        for p in temp_paths:
+                            if os.path.exists(p):
+                                os.unlink(p)
     
     with history_tab:
         st.markdown("### 📋 Previous Extractions")

@@ -3,7 +3,7 @@ Frontend API - Thin bridge between Streamlit UI and Backend Logic.
 Directly imports and uses core logic from ai_models and app.core.
 """
 
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Union
 import os
 import certifi
 
@@ -82,6 +82,10 @@ def extract_and_save_rubric_from_pdf(pdf_path: str, teacher_id: Optional[str],
         if not parsed_rubrics:
             return {"error": "Failed to extract rubrics from PDF"}
 
+        # Validate rubrics
+        print("🕵️ Validating rubrics...")
+        validation_result = validate_rubrics_with_llm(parsed_rubrics)
+
         # 4. Compute ID using CORE logic
         rubric_set_id = compute_rubric_set_id(parsed_rubrics)
         
@@ -102,7 +106,8 @@ def extract_and_save_rubric_from_pdf(pdf_path: str, teacher_id: Optional[str],
         return {
             "ok": True,
             "rubric_set_id": rubric_set_id,
-            "parsed_rubrics": parsed_rubrics
+            "parsed_rubrics": parsed_rubrics,
+            "validation": validation_result
         }
         
     except Exception as e:
@@ -190,25 +195,25 @@ def grade_student_submission(student_id: str, report_file_path: str, rubric_set_
 # BLUEBOOK EXTRACTION
 # ============================================
 
-def extract_bluebook(image_path: str) -> Dict[str, Any]:
+def extract_bluebook(image_paths: Union[str, List[str]]) -> Dict[str, Any]:
     """
     Uses core `bluebook_extractor.py` logic.
     """
     try:
-        print(f"🧠 Extracting bluebook: {image_path}")
+        print(f"🧠 Extracting bluebook(s): {image_paths}")
         # Directly call the core logic function
-        result = extract_bluebook_data(image_path)
+        result = extract_bluebook_data(image_paths)
         
         # Standardize response for frontend
         if "error" in result:
-            return {"error": result["error"]}
-            
+             return {"error": result["error"]}
+
         bluebooks = result.get("bluebooks", [])
         return {
             "success": True,
             "bluebooks": bluebooks,
             "total_bluebooks": len(bluebooks),
-            "visualized_image": result.get("visualized_image")
+            "visualized_images": result.get("visualized_images", [])
         }
         
     except Exception as e:
@@ -223,7 +228,7 @@ def save_bluebook_results(teacher_id: str, data: Dict[str, Any], filename: str) 
             "image_filename": filename,
             "extraction_date": now_utc().isoformat(),
             "bluebooks": data.get("bluebooks", []),
-            "visualized_image": data.get("visualized_image")
+            "visualized_images": data.get("visualized_images", [])
         }
         db_client.db["bluebook_results"].insert_one(doc)
         return True

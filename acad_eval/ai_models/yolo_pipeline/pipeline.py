@@ -12,7 +12,7 @@ import numpy as np
 import re # <-- REGEX IMPORT ADDED
 from ultralytics import YOLO
 from pathlib import Path
-from typing import List, Tuple, Dict, Any
+from typing import List, Tuple, Dict, Any, Union
 
 # ---------------- CONFIG ----------------
 # Get the project root directory, which is three levels up from this file's directory
@@ -228,57 +228,79 @@ def process_single_bluebook_with_gemini(
 # Main Pipeline Orchestration
 # ----------------------------
 def run_pipeline_and_call_gemini(
-    image_path: str,
+    image_paths: Union[str, List[str]],
     model_path: str = MODEL_PATH,
     output_project: str = OUTPUT_PROJECT,
     conf_threshold: float = CONF_THRESHOLD
 ) -> Dict[str, Any]:
     """
     Runs YOLO, clusters boxes, and sends crops to Gemini for data extraction.
+    Supports processing multiple images and aggregating results.
     """
-    # 1. Run YOLO and get box data
-    try:
-        visualized_image_path, all_boxes_data = run_yolo_and_extract_boxes(
-            image_path, model_path, output_project, conf_threshold
-        )
-    except Exception as e:
-        return {"error": f"YOLO prediction failed: {e}"}
+    if isinstance(image_paths, str):
+        image_paths = [image_paths]
 
-    # 2. Cluster boxes
-    bluebook_clusters = cluster_boxes_into_bluebooks(all_boxes_data)
-    if not bluebook_clusters:
-        return {"error": "No bluebooks detected."}
-
-    # 3. Load the visualized image
-    img_bgr_viz = cv2.imread(str(visualized_image_path))
-    if img_bgr_viz is None:
-         return {"error": f"Could not read visualized image at {visualized_image_path}"}
-    visualized_img_rgb = cv2.cvtColor(img_bgr_viz, cv2.COLOR_BGR2RGB)
-    
-    # 4. Initialize Gemini client
+    # Initialize Gemini client once
     try:
         client = make_gemini_client()
     except (RuntimeError, ValueError) as e:
         return {"error": str(e)}
 
-    # 5. Process each bluebook
-    extracted_data = {"bluebooks": []}
-    for cluster in bluebook_clusters:
-        result = process_single_bluebook_with_gemini(cluster, visualized_img_rgb, client)
+    aggregated_data = {"bluebooks": []}
+    visualized_images = []
+    
+    # Process each image
+    for image_path in image_paths:
+        print(f"Processing: {image_path}")
         
-        if "error" not in result and result.get('usn') and result.get('usn') != 'null':
-            extracted_data["bluebooks"].append(result)
+        # 1. Run YOLO and get box data
+        try:
+            visualized_image_path, all_boxes_data = run_yolo_and_extract_boxes(
+                image_path, model_path, output_project, conf_threshold
+            )
+            visualized_images.append(str(visualized_image_path))
+        except Exception as e:
+            print(f"Error processing {image_path}: {e}")
+            continue
 
-    # 6. Save and return final results
-    yolo_run_dir = visualized_image_path.parent
-    gemini_output_file = yolo_run_dir / f"{Path(image_path).stem}_gemini_final.json"
+        # 2. Cluster boxes
+        bluebook_clusters = cluster_boxes_into_bluebooks(all_boxes_data)
+        if not bluebook_clusters:
+            print(f"No bluebooks detected in {image_path}")
+            continue
+
+        # 3. Load the visualized image
+        img_bgr_viz = cv2.imread(str(visualized_image_path))
+        if img_bgr_viz is None:
+             print(f"Could not read visualized image at {visualized_image_path}")
+             continue
+        visualized_img_rgb = cv2.cvtColor(img_bgr_viz, cv2.COLOR_BGR2RGB)
+        
+        # 4. Process each bluebook in the image
+        for cluster in bluebook_clusters:
+            result = process_single_bluebook_with_gemini(cluster, visualized_img_rgb, client)
+            
+            if "error" not in result and result.get('usn') and result.get('usn') != 'null':
+                # Add source image info for tracking
+                result['_source_image'] = str(Path(image_path).name)
+                aggregated_data["bluebooks"].append(result)
+
+    # 5. Save and return final results
+    # We'll save the combined JSON in the output directory of the last processed image, 
+    # or a general output dir if possible. For now, use the project output dir.
+    
+    output_dir = Path(output_project) / OUTPUT_NAME
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    gemini_output_file = output_dir / "combined_gemini_results.json"
+    
     with open(gemini_output_file, "w") as f:
-        json.dump(extracted_data, f, indent=2)
+        json.dump(aggregated_data, f, indent=2)
 
     return {
-        "visualized_image": str(visualized_image_path),
+        "visualized_images": visualized_images,
         "gemini_json": str(gemini_output_file),
-        "gemini_result": extracted_data
+        "gemini_result": aggregated_data
     }
 
 # ----------------------------
@@ -286,13 +308,18 @@ def run_pipeline_and_call_gemini(
 # ----------------------------
 if __name__ == "__main__":
     # Define a sample image path for testing purposes
-    test_image_path =str(PROJECT_ROOT / "jpegmini_optimized" / "IMG_4821.jpg")
+    test_image_path = str(PROJECT_ROOT / "jpegmini_optimized" / "IMG_4821.jpg")
     
     if not Path(test_image_path).exists():
         print(f"Test image not found at: {test_image_path}")
     else:
+        # Test with a list of images
+        test_image_paths = [test_image_path]
+        
+        print(f"Running pipeline on {len(test_image_paths)} images...")
+        
         res = run_pipeline_and_call_gemini(
-            test_image_path,
+            test_image_paths,
             model_path=MODEL_PATH,
             output_project=OUTPUT_PROJECT
         )
@@ -302,6 +329,6 @@ if __name__ == "__main__":
         
         print(json.dumps({
             "total_bluebooks_found": bluebook_count,
-            "visualized_img": res.get("visualized_image"),
+            "visualized_imgs": res.get("visualized_images"),
             "gemini_json": res.get("gemini_json"),
         }, indent=2))

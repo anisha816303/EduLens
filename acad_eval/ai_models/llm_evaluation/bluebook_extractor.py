@@ -25,7 +25,7 @@ Return format:
 """
 
 from __future__ import annotations
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Union
 from pathlib import Path
 
 # NOTE: project root on sys.path is `acad_eval`,
@@ -39,11 +39,11 @@ YOLO_WEIGHTS_PATH = PROJECT_ROOT / "acad_eval" / "ai_models" / "yolo_pipeline" /
 OUTPUT_DIR = PROJECT_ROOT / "outputs"
 
 
-def extract_bluebook_data(image_path: str) -> Dict[str, Any]:
+def extract_bluebook_data(image_paths: Union[str, List[str]]) -> Dict[str, Any]:
     """
     High-level entry point used by the rest of the project.
 
-    - Runs the YOLOv8 + Gemini pipeline.
+    - Runs the YOLOv8 + Gemini pipeline on one or more images.
     - Returns the extracted data in the format expected by the application.
     """
     if not YOLO_WEIGHTS_PATH.exists():
@@ -54,7 +54,7 @@ def extract_bluebook_data(image_path: str) -> Dict[str, Any]:
 
     # Call the new pipeline
     pipeline_result = run_pipeline_and_call_gemini(
-        image_path=image_path,
+        image_paths=image_paths,
         model_path=str(YOLO_WEIGHTS_PATH),
         output_project=str(OUTPUT_DIR)
     )

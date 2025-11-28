@@ -13,7 +13,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.
 from app.core.config import GEMINI_API_KEY, RUBRIC_MODEL, GRADE_MODEL, get_ist_timezone, now_utc
 from app.core.database import db_client
 from ai_models.llm_evaluation.evaluator import (
-    extract_rubrics_from_file, compute_rubric_set_id, grade_submission
+    extract_rubrics_from_file, compute_rubric_set_id, grade_submission, validate_rubrics_with_llm
 )
 from ai_models.llm_evaluation.bluebook_extractor import extract_bluebook_data
 
@@ -90,6 +90,11 @@ def teacher_setup_rubric():
     parsed_rubrics = extract_rubrics_from_file(file_obj)
     print(parsed_rubrics)
 
+    # Validate rubrics
+    print("\n🕵️ Validating rubrics...")
+    validation_result = validate_rubrics_with_llm(parsed_rubrics)
+    print(json.dumps(validation_result, indent=2))
+
     # Clean up uploaded file from Gemini
     try:
         genai.delete_file(file_obj.name)
@@ -121,22 +126,37 @@ def teacher_setup_rubric():
 
 def teacher_extract_bluebook():
     """
-    Teacher uploads a bluebook image.
+    Teacher uploads one or more bluebook images.
     We run the YOLO + Gemini pipeline to extract marks and other details.
     """
     print("\n📘 [TEACHER MODE] Bluebook Marks Extraction")
-    print("📸 Enter the **FULL PATH** to the Bluebook cover page IMAGE (e.g., /Users/user/Desktop/bluebook.jpg)")
+    print("📸 Enter the **FULL PATH** to the Bluebook cover page IMAGE(s).")
+    print("   You can enter multiple paths separated by commas, or just one.")
+    print("   Example: /path/to/img1.jpg, /path/to/img2.jpg")
 
-    image_path = get_local_file_path("   -> Bluebook Image Path: ")
-    if not image_path:
+    raw_input = input("   -> Bluebook Image Path(s): ").strip()
+    if not raw_input:
         raise SystemExit("❌ No image file provided. Cannot continue.")
 
-    print(f"✅ Loaded image file: {image_path}")
+    # Split by comma and clean up
+    image_paths = [p.strip() for p in raw_input.split(',') if p.strip()]
+    
+    valid_paths = []
+    for path in image_paths:
+        if os.path.exists(path):
+            valid_paths.append(path)
+        else:
+            print(f"⚠️ Warning: File not found at '{path}', skipping.")
+    
+    if not valid_paths:
+        raise SystemExit("❌ No valid image files found. Cannot continue.")
+
+    print(f"✅ Loaded {len(valid_paths)} image file(s).")
     print("\n🧠 Running Bluebook extraction pipeline... (This may take a moment)")
 
     try:
-        # This function now calls your new YOLO pipeline
-        extraction_result = extract_bluebook_data(image_path)
+        # This function now calls your new YOLO pipeline with a list of images
+        extraction_result = extract_bluebook_data(valid_paths)
 
         print("\n✅ Extraction Complete!")
         print("=" * 30)

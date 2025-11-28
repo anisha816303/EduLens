@@ -2,48 +2,29 @@
   "bluebooks": [
     {
       "usn": "1MS22CS051",
-      "subject_code": "CS52",
+      "subject_code": "CSS2",
       "cie_marks": {
         "T1": {
           "Q1": {
-            "a": "5",
-            "b": "0",
-            "c": "3",
-            "d": null
+            "a": "6",
+            "b": "6",
+            "c": "5",
+            "d": "0"
           },
           "Q2": {
             "a": "8",
             "b": "7",
-            "c": null,
-            "d": null
+            "c": "0",
+            "d": "0"
           },
           "Q3": {
             "a": "7",
-            "b": null,
-            "c": null,
-            "d": null
+            "b": "0",
+            "c": "0",
+            "d": "0"
           }
         },
-        "T2": {
-          "Q1": {
-            "a": null,
-            "b": null,
-            "c": null,
-            "d": null
-          },
-          "Q2": {
-            "a": null,
-            "b": null,
-            "c": null,
-            "d": null
-          },
-          "Q3": {
-            "a": null,
-            "b": null,
-            "c": null,
-            "d": null
-          }
-        }
+        "T2": {}
       }
     }
   ]
