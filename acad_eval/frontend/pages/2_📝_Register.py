@@ -17,6 +17,7 @@ st.title("📝 Register New Account")
 
 user_type = st.radio("Select your role:", ["Student", "Teacher"], horizontal=True)
 
+# Registration form
 with st.form("register_form"):
     name = st.text_input("Full Name", placeholder="John Doe")
     
@@ -24,6 +25,7 @@ with st.form("register_form"):
         user_id = st.text_input("Student ID", placeholder="e.g., S12345", 
                                 help="Enter your university-assigned student ID")
     else:
+        user_id = None  # Will be auto-generated for teachers
         st.info("ℹ️ Teacher ID will be auto-generated based on your name")
     
     password = st.text_input("Password", type="password", 
@@ -31,46 +33,70 @@ with st.form("register_form"):
     confirm_password = st.text_input("Confirm Password", type="password")
     
     submitted = st.form_submit_button("Register", use_container_width=True, type="primary")
-    
-    if submitted:
-        # Validation
-        if not name or not password:
-            st.error("⚠️ Please fill in all required fields")
-        elif user_type == "Student" and not user_id:
-            st.error("⚠️ Student ID is required")
-        elif len(password) < 6:
-            st.error("⚠️ Password must be at least 6 characters")
-        elif password != confirm_password:
-            st.error("⚠️ Passwords do not match")
-        else:
-            with st.spinner("Creating account..."):
-                if user_type == "Student":
-                    success = register_student(user_id, name, password)
-                    if success:
-                        st.success(f"✅ Student account created successfully!")
-                        st.info(f"Your Student ID: **{user_id}**")
-                        st.balloons()
-                        if st.button("Go to Login"):
-                            st.switch_page("pages/1_🔐_Login.py")
-                    else:
-                        st.error("❌ Registration failed. Student ID may already exist.")
-                else:
-                    teacher_id = register_teacher(name, password)
-                    if teacher_id:
-                        st.success(f"✅ Teacher account created successfully!")
-                        st.info(f"Your Teacher ID: **{teacher_id}**")
-                        st.warning("⚠️ Please save this ID - you'll need it to login!")
-                        st.balloons()
-                        if st.button("Go to Login"):
-                            st.switch_page("pages/1_🔐_Login.py")
-                    else:
-                        st.error("❌ Registration failed. Please try again.")
 
+# Handle form submission OUTSIDE the form
+if submitted:
+    # Validation
+    if not name or not password:
+        st.error("⚠️ Please fill in all required fields")
+    elif user_type == "Student" and not user_id:
+        st.error("⚠️ Student ID is required")
+    elif len(password) < 6:
+        st.error("⚠️ Password must be at least 6 characters")
+    elif password != confirm_password:
+        st.error("⚠️ Passwords do not match")
+    else:
+        with st.spinner("Creating account..."):
+            if user_type == "Student":
+                success = register_student(user_id, name, password)
+                if success:
+                    st.success(f"✅ Student account created successfully!")
+                    st.info(f"Your Student ID: **{user_id}**")
+                    st.balloons()
+                    
+                    # Store registration success in session state
+                    st.session_state.registration_success = True
+                    st.session_state.registered_user_id = user_id
+                    st.session_state.registered_user_type = "student"
+                else:
+                    st.error("❌ Registration failed. Student ID may already exist.")
+            else:
+                teacher_id = register_teacher(name, password)
+                if teacher_id:
+                    st.success(f"✅ Teacher account created successfully!")
+                    st.info(f"Your Teacher ID: **{teacher_id}**")
+                    st.warning("⚠️ Please save this ID - you'll need it to login!")
+                    st.balloons()
+                    
+                    # Store registration success in session state
+                    st.session_state.registration_success = True
+                    st.session_state.registered_user_id = teacher_id
+                    st.session_state.registered_user_type = "teacher"
+                else:
+                    st.error("❌ Registration failed. Please try again.")
+
+# Show navigation buttons if registration was successful
+if st.session_state.get('registration_success', False):
+    st.markdown("---")
+    st.markdown("### 🎉 Registration Complete!")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("🔑 Go to Login", use_container_width=True, type="primary"):
+            # Clear registration success flag
+            st.session_state.registration_success = False
+            st.switch_page("pages/1_🔐_Login.py")
+    with col2:
+        if st.button("🏠 Go to Home", use_container_width=True):
+            st.session_state.registration_success = False
+            st.switch_page("app.py")
+
+# Show regular navigation at the bottom
 st.markdown("---")
 col1, col2 = st.columns(2)
 with col1:
-    if st.button("← Back to Home"):
+    if st.button("← Back to Home", key="back_home"):
         st.switch_page("app.py")
 with col2:
-    if st.button("🔑 Already have an account? Login"):
+    if st.button("🔑 Already have an account? Login", key="go_login"):
         st.switch_page("pages/1_🔐_Login.py")
