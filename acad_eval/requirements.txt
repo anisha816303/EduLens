@@ -9,6 +9,7 @@ fastapi
 uvicorn[standard]
 pydantic
 python-dotenv
+bcrypt
 
 # --- AI Orchestration & Tooling ---
 langchain-core
@@ -25,4 +26,5 @@ paddleocr==2.7.0.3
 opencv-python
 Pillow
 numpy
-google-generativeai certifi
+google-generativeai
+certifi
