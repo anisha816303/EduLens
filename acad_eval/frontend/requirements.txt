@@ -4,3 +4,32 @@ bcrypt>=4.1.0
 google-generativeai>=0.8.0
 certifi
 python-dotenv>=1.0.0
+
+# --- Core LLM & Database ---
+google-genai            # <--- CRITICAL NEW ADDITION (For V2 SDK / Gemini 2.5)
+google-generativeai     # (Keep for backward compatibility/LangChain dependency)
+pymongo
+PyPDF2
+
+# --- Backend API & Utilities ---
+fastapi
+uvicorn[standard]
+pydantic
+python-dotenv
+bcrypt
+
+# --- AI Orchestration & Tooling ---
+langchain-core
+langchain
+langchain-google-genai
+
+# --- Frontend & Visualization ---
+plotly
+ultralytics
+paddlepaddle==2.6.1        # or a compatible version for your platform
+paddleocr==2.7.0.3
+opencv-python
+Pillow
+numpy
+certifi
+streamlit>=1.39.0
