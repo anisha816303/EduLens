@@ -25,9 +25,13 @@ langchain-google-genai
 
 # --- Frontend & Visualization ---
 plotly
-ultralytics
-opencv-python-headless
-Pillow
-numpy
 certifi
 streamlit>=1.39.0
+
+# --- YOLO ---
+ultralytics>=8.0.0
+opencv-python-headless==4.8.1.78
+Pillow>=10.0.0
+numpy<2.0.0
+
+
