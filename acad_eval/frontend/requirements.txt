@@ -26,8 +26,6 @@ langchain-google-genai
 # --- Frontend & Visualization ---
 plotly
 ultralytics
-paddlepaddle==2.6.1        # or a compatible version for your platform
-paddleocr==2.7.0.3
 opencv-python
 Pillow
 numpy
