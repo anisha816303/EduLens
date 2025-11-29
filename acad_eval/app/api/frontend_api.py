@@ -24,20 +24,22 @@ from app.core.database import db_client
 from app.core.config import GEMINI_API_KEY, RUBRIC_MODEL, GRADE_MODEL, now_utc
 
 # --- AI Logic Imports (Reuse existing modules) ---
+# --- AI Logic Imports (Reuse existing modules) ---
+print(f"DEBUG: sys.path: {sys.path}")
 try:
-    from ai_models.llm_evaluation.evaluator import (
-        extract_rubrics_from_file, 
-        compute_rubric_set_id, 
-        grade_submission,
-        validate_rubrics_with_llm
-    )
-except ImportError as e:
-    print(f"❌ Error importing evaluator: {e}")
+    print(f"DEBUG: Contents of {project_root}: {os.listdir(project_root)}")
+    print(f"DEBUG: Contents of {os.path.join(project_root, 'ai_models')}: {os.listdir(os.path.join(project_root, 'ai_models'))}")
+except Exception as e:
+    print(f"DEBUG: Error listing dirs: {e}")
 
-try:
-    from ai_models.llm_evaluation.bluebook_extractor import extract_bluebook_data
-except ImportError as e:
-    print(f"❌ Error importing bluebook_extractor: {e}")
+from ai_models.llm_evaluation.evaluator import (
+    extract_rubrics_from_file, 
+    compute_rubric_set_id, 
+    grade_submission,
+    validate_rubrics_with_llm
+)
+
+from ai_models.llm_evaluation.bluebook_extractor import extract_bluebook_data
 
 # --- Google GenAI Setup (Only for file upload helpers if needed) ---
 import google.generativeai as genai
