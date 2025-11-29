@@ -39,7 +39,7 @@ from ai_models.llm_evaluation.evaluator import (
     validate_rubrics_with_llm
 )
 
-from acad_eval.ai_models.llm_evaluation.bluebook_extractor import extract_bluebook_data
+from ai_models.llm_evaluation.bluebook_extractor import extract_bluebook_data
 
 # --- Google GenAI Setup (Only for file upload helpers if needed) ---
 import google.generativeai as genai
