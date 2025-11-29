@@ -6,7 +6,7 @@
 
 <div align="center">
 
-**[Live Demo on Streamlit]([https://your-streamlit-app-url.streamlit.app](https://edulens.streamlit.app/))**
+**[Live Demo on Streamlit](https://edulens.streamlit.app/)**
 
 </div>
 
