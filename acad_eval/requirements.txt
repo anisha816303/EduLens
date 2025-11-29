@@ -21,7 +21,7 @@ plotly
 ultralytics
 paddlepaddle==2.6.1        # or a compatible version for your platform
 paddleocr==2.7.0.3
-opencv-python
+opencv-python-headless
 Pillow
 numpy
 certifi
