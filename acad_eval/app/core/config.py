@@ -1,20 +1,42 @@
 import os
 from datetime import datetime, timezone, timedelta
+from dotenv import load_dotenv
+
+# Load environment variables from .env file (for local development)
+load_dotenv()
+
+# --- Helper function to get secrets from env or Streamlit ---
+def get_secret(key: str, default: str = None) -> str:
+    """Get secret from environment variable or Streamlit secrets."""
+    # First try environment variable
+    value = os.getenv(key)
+    if value:
+        return value
+    
+    # Try Streamlit secrets (for cloud deployment)
+    try:
+        import streamlit as st
+        if hasattr(st, 'secrets') and key in st.secrets:
+            return st.secrets[key]
+    except (ImportError, FileNotFoundError, KeyError):
+        pass
+    
+    # Return default if provided
+    if default is not None:
+        return default
+    
+    raise ValueError(f"Secret '{key}' not found in environment or Streamlit secrets")
 
 # --- API and Model Configuration ---
-# Your actual Gemini API key should be set via environment variable for production!
-# For this example, we'll keep the placeholder from your base code.
-GEMINI_API_KEY = "AIzaSyC9DEpz2yAS4dpfFNvy7JLj3DR0GqoqemQ" # Placeholder from base code
-
+GEMINI_API_KEY = get_secret("GEMINI_API_KEY", "")
 
 # Model names
 RUBRIC_MODEL = "gemini-2.5-flash"   # Used for parsing rubrics (deterministic)
 GRADE_MODEL  = "gemini-2.5-flash"   # Used for grading
 
 # --- Database Configuration ---
-# The MongoDB connection string
-MONGO_URI = "mongodb+srv://supermarioking13:supermariox@testapp.qylpec3.mongodb.net/?appName=TestApp"
-DATABASE_NAME = "grading_db"
+MONGO_URI = get_secret("MONGO_URI", "")
+DATABASE_NAME = get_secret("DATABASE_NAME", "grading_db")
 SUBMISSIONS_COLLECTION = "submissions"
 RUBRIC_SETS_COLLECTION = "rubric_sets"
 

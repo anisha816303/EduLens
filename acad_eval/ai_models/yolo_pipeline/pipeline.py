@@ -24,8 +24,26 @@ YOLO_WEIGHTS_PATH = PROJECT_ROOT / "acad_eval" / "ai_models" / "yolo_pipeline" /
 OUTPUT_PROJECT_PATH = PROJECT_ROOT / "outputs"
 
 # --- API KEY ---
-# IMPORTANT: It is strongly recommended to use environment variables for API keys.
-API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyC9DEpz2yAS4dpfFNvy7JLj3DR0GqoqemQ") # Placeholder
+# Import from centralized config which handles .env and Streamlit secrets
+try:
+    # Try to import from the app.core.config module
+    import sys
+    from pathlib import Path
+    acad_eval_path = Path(__file__).resolve().parents[2]
+    if str(acad_eval_path) not in sys.path:
+        sys.path.insert(0, str(acad_eval_path))
+    from app.core.config import GEMINI_API_KEY
+    API_KEY = GEMINI_API_KEY
+except ImportError:
+    # Fallback to environment variable if config import fails
+    API_KEY = os.environ.get("GEMINI_API_KEY", "")
+    if not API_KEY:
+        try:
+            import streamlit as st
+            if hasattr(st, 'secrets') and 'GEMINI_API_KEY' in st.secrets:
+                API_KEY = st.secrets['GEMINI_API_KEY']
+        except:
+            pass
 
 # Pick a model you have access to
 GEMINI_MODEL = "gemini-2.5-flash"
