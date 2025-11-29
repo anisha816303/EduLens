@@ -6,8 +6,8 @@ certifi
 python-dotenv>=1.0.0
 
 # --- Core LLM & Database ---
-google-genai            # <--- CRITICAL NEW ADDITION (For V2 SDK / Gemini 2.5)
-google-generativeai     # (Keep for backward compatibility/LangChain dependency)
+google-genai
+google-generativeai
 pymongo
 PyPDF2
 
@@ -28,11 +28,8 @@ plotly
 certifi
 streamlit>=1.39.0
 
-# --- YOLO ---
+# --- YOLO / CV ---
 ultralytics>=8.0.0
-opencv-python-headless==4.8.1.78
-opencv-python==0
+opencv-python-headless>=4.6.0,<4.12.0.90
 Pillow>=10.0.0
 numpy<2.0.0
-
-
