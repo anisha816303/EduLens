@@ -8,7 +8,7 @@
           "Q1": {
             "a": "5",
             "b": "0",
-            "c": "5",
+            "c": "3",
             "d": null
           },
           "Q2": {
@@ -45,7 +45,242 @@
           }
         }
       },
-      "_source_image": "tmphz2c2a2u.jpg"
+      "_source_image": "tmp49n45ija.jpg"
+    },
+    {
+      "usn": "1MS23CS069",
+      "subject_code": "CS33",
+      "cie_marks": {
+        "T1": {
+          "Q1": {
+            "a": "1",
+            "b": "05",
+            "c": "-",
+            "d": null
+          },
+          "Q2": {
+            "a": null,
+            "b": null,
+            "c": null,
+            "d": null
+          },
+          "Q3": {
+            "a": "05",
+            "b": "-",
+            "c": "-",
+            "d": null
+          }
+        },
+        "T2": {
+          "Q1": {
+            "a": "1",
+            "b": "03",
+            "c": "00",
+            "d": null
+          },
+          "Q2": {
+            "a": "00",
+            "b": "01",
+            "c": "02",
+            "d": null
+          },
+          "Q3": {
+            "a": null,
+            "b": null,
+            "c": null,
+            "d": null
+          }
+        }
+      },
+      "_source_image": "tmpc4fw09yy.jpg"
+    },
+    {
+      "usn": "1MS23CS103",
+      "subject_code": "CS AFCU9",
+      "cie_marks": {
+        "T1": {
+          "Q1": {
+            "a": "5",
+            "b": null,
+            "c": null,
+            "d": null
+          },
+          "Q2": {
+            "a": "6",
+            "b": "5",
+            "c": null,
+            "d": null
+          },
+          "Q3": {
+            "a": "2",
+            "b": "6",
+            "c": null,
+            "d": null
+          }
+        },
+        "T2": {
+          "Q1": {
+            "a": "5",
+            "b": null,
+            "c": null,
+            "d": null
+          },
+          "Q2": {
+            "a": "6",
+            "b": "4",
+            "c": null,
+            "d": null
+          },
+          "Q3": {
+            "a": "4",
+            "b": "5",
+            "c": null,
+            "d": null
+          }
+        }
+      },
+      "_source_image": "tmps_s4zk_w.jpg"
+    },
+    {
+      "usn": "1MS23CS067",
+      "subject_code": "CS33",
+      "cie_marks": {
+        "T1": {
+          "Q1": {
+            "a": "05",
+            "b": "05",
+            "c": "01",
+            "d": null
+          },
+          "Q2": {
+            "a": null,
+            "b": null,
+            "c": null,
+            "d": null
+          },
+          "Q3": {
+            "a": "05",
+            "b": "01",
+            "c": "05",
+            "d": null
+          }
+        },
+        "T2": {
+          "Q1": {
+            "a": "05",
+            "b": "05",
+            "c": "05",
+            "d": null
+          },
+          "Q2": {
+            "a": null,
+            "b": null,
+            "c": null,
+            "d": null
+          },
+          "Q3": {
+            "a": "02",
+            "b": "03",
+            "c": "05",
+            "d": null
+          }
+        }
+      },
+      "_source_image": "tmp1lo97plm.jpg"
+    },
+    {
+      "usn": "LMS23CS081",
+      "subject_code": "CS33",
+      "cie_marks": {
+        "T1": {
+          "Q1": {
+            "a": "05",
+            "b": "05",
+            "c": "00",
+            "d": null
+          },
+          "Q2": {
+            "a": null,
+            "b": null,
+            "c": null,
+            "d": null
+          },
+          "Q3": {
+            "a": "05",
+            "b": "01",
+            "c": "01",
+            "d": null
+          }
+        },
+        "T2": {
+          "Q1": {
+            "a": "04",
+            "b": "01",
+            "c": "00",
+            "d": null
+          },
+          "Q2": {
+            "a": "00",
+            "b": "01",
+            "c": "01",
+            "d": null
+          },
+          "Q3": {
+            "a": "00",
+            "b": "01",
+            "c": "02",
+            "d": null
+          }
+        }
+      },
+      "_source_image": "tmpsgpucrv3.jpg"
+    },
+    {
+      "usn": "LMS23CS073",
+      "subject_code": "CS33",
+      "cie_marks": {
+        "T1": {
+          "Q1": {
+            "a": "05",
+            "b": "05",
+            "c": "01",
+            "d": null
+          },
+          "Q2": {
+            "a": null,
+            "b": null,
+            "c": null,
+            "d": null
+          },
+          "Q3": {
+            "a": "05",
+            "b": "-05",
+            "c": null,
+            "d": null
+          }
+        },
+        "T2": {
+          "Q1": {
+            "a": "05",
+            "b": "03",
+            "c": "00",
+            "d": null
+          },
+          "Q2": {
+            "a": null,
+            "b": null,
+            "c": null,
+            "d": null
+          },
+          "Q3": {
+            "a": "00",
+            "b": "00",
+            "c": "03",
+            "d": null
+          }
+        }
+      },
+      "_source_image": "tmpzoydwcog.jpg"
     }
   ]
 }
