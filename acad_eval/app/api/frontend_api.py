@@ -20,8 +20,8 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
 sys.path.insert(0, project_root)
 
 # --- Core Imports ---
-from acad_eval.app.core.database import db_client
-from acad_eval.app.core.config import GEMINI_API_KEY, RUBRIC_MODEL, GRADE_MODEL, now_utc
+from app.core.database import db_client
+from app.core.config import GEMINI_API_KEY, RUBRIC_MODEL, GRADE_MODEL, now_utc
 
 # --- AI Logic Imports (Reuse existing modules) ---
 # --- AI Logic Imports (Reuse existing modules) ---
@@ -32,7 +32,7 @@ try:
 except Exception as e:
     print(f"DEBUG: Error listing dirs: {e}")
 
-from acad_eval.ai_models.llm_evaluation.evaluator import (
+from ai_models.llm_evaluation.evaluator import (
     extract_rubrics_from_file, 
     compute_rubric_set_id, 
     grade_submission,
