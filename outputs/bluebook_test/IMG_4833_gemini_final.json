@@ -1,0 +1,50 @@
+{
+  "bluebooks": [
+    {
+      "usn": "IIMS23CS07L",
+      "subject_code": "CS33",
+      "cie_marks": {
+        "T1": {
+          "Q1": {
+            "a": "10",
+            "b": "00",
+            "c": null,
+            "d": null
+          },
+          "Q2": {
+            "a": null,
+            "b": null,
+            "c": null,
+            "d": null
+          },
+          "Q3": {
+            "a": "00",
+            "b": null,
+            "c": "00",
+            "d": null
+          }
+        },
+        "T2": {
+          "Q1": {
+            "a": "00",
+            "b": "00",
+            "c": null,
+            "d": null
+          },
+          "Q2": {
+            "a": null,
+            "b": "00",
+            "c": "00",
+            "d": null
+          },
+          "Q3": {
+            "a": null,
+            "b": null,
+            "c": null,
+            "d": null
+          }
+        }
+      }
+    }
+  ]
+}

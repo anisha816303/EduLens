@@ -1,0 +1,50 @@
+{
+  "bluebooks": [
+    {
+      "usn": "1MS23CS097",
+      "subject_code": "CSAEC49",
+      "cie_marks": {
+        "T1": {
+          "Q1": {
+            "a": "1",
+            "b": null,
+            "c": null,
+            "d": null
+          },
+          "Q2": {
+            "a": "3",
+            "b": "00",
+            "c": null,
+            "d": null
+          },
+          "Q3": {
+            "a": "3",
+            "b": "4",
+            "c": null,
+            "d": null
+          }
+        },
+        "T2": {
+          "Q1": {
+            "a": "6",
+            "b": null,
+            "c": null,
+            "d": null
+          },
+          "Q2": {
+            "a": "4",
+            "b": "5",
+            "c": null,
+            "d": null
+          },
+          "Q3": {
+            "a": "2",
+            "b": "3",
+            "c": null,
+            "d": null
+          }
+        }
+      }
+    }
+  ]
+}
