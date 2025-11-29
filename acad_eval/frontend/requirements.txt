@@ -27,6 +27,7 @@ langchain-google-genai
 plotly
 ultralytics
 opencv-python-headless
+opencv-python!=4.11.*,!=4.12.*
 Pillow
 numpy
 certifi
