@@ -14,6 +14,7 @@ from app.api.frontend_api import (
     extract_and_save_rubric_from_pdf,
     list_submissions_for_rubric
 )
+
 from app.core.config import get_ist_timezone
 from frontend.pages.utils.session_manager import check_authentication
 
@@ -22,13 +23,84 @@ st.set_page_config(page_title="Report Evaluation", page_icon="📝", layout="wid
 # Check authentication
 check_authentication('teacher')
 
-# Hide the default Streamlit page navigation sidebar
+# MSRIT Color Scheme
 st.markdown("""
-    <style>
-        [data-testid="stSidebarNav"] {
-            display: none;
-        }
-    </style>
+<style>
+    /* MSRIT Color Theme */
+    .stApp {
+        background-color: #f5f5f5;
+    }
+    
+    /* Primary buttons - Red */
+    .stButton > button[kind="primary"] {
+        background-color: #c41e3a !important;
+        color: white !important;
+    }
+    
+    .stButton > button[kind="primary"]:hover {
+        background-color: #a01830 !important;
+    }
+    
+    /* Regular buttons - Navy */
+    .stButton > button {
+        background-color: #2d3e50 !important;
+        color: white !important;
+    }
+    
+    .stButton > button:hover {
+        background-color: #1f2d3d !important;
+    }
+    
+    /* Sidebar */
+    section[data-testid="stSidebar"] {
+        background-color: #2d3e50 !important;
+    }
+    
+    section[data-testid="stSidebar"] * {
+        color: white !important;
+    }
+    
+    /* Headers */
+    h1, h2, h3 {
+        color: #2d3e50 !important;
+    }
+    
+    /* Tabs */
+    .stTabs [data-baseweb="tab-list"] {
+        background-color: #2d3e50;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        color: white !important;
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background-color: #c41e3a !important;
+    }
+    
+    /* Form elements */
+    .stTextInput > label, .stDateInput > label, .stTimeInput > label, 
+    .stNumberInput > label, .stFileUploader > label {
+        color: #2d3e50 !important;
+        font-weight: 600 !important;
+    }
+    
+    /* Dataframes */
+    .stDataFrame {
+        border: 2px solid #2d3e50 !important;
+    }
+    
+    /* Expander */
+    .streamlit-expanderHeader {
+        background-color: #2d3e50 !important;
+        color: white !important;
+    }
+    
+    /* Metrics */
+    [data-testid="stMetricValue"] {
+        color: #c41e3a !important;
+    }
+</style>
 """, unsafe_allow_html=True)
 
 st.title("📝 Report Evaluation")
@@ -37,15 +109,12 @@ st.markdown(f"**Welcome, {st.session_state.user_name}!**")
 # Sidebar
 with st.sidebar:
     st.header("🎯 Quick Actions")
-    
     st.markdown("### 📚 Features")
     if st.button("📸 Bluebook Marks Extraction", use_container_width=True, key="sidebar_bluebook"):
         st.switch_page("pages/5_📸_Bluebook_Extraction.py")
-    
     st.info("📝 **Report Evaluation**\n\n*You are here*")
     
     st.markdown("---")
-    
     if st.button("🏠 Dashboard", use_container_width=True):
         st.switch_page("pages/4_👨‍🏫_Teacher_Dashboard.py")
     if st.button("🚪 Logout", use_container_width=True):
@@ -58,7 +127,6 @@ tab1, tab2 = st.tabs(["📝 Create Rubric", "📊 View Rubrics & Submissions"])
 # TAB 1: Create Rubric
 with tab1:
     st.header("📝 Create New Rubric Set")
-    
     st.info("ℹ️ Upload a PDF containing your grading rubric. AI will extract the criteria automatically.")
     
     with st.form("rubric_upload_form"):
@@ -97,6 +165,7 @@ with tab1:
                 
                 deadline_iso = None
                 deadline_display_str = "None (Unlimited)"
+                
                 if deadline_date:
                     try:
                         deadline_dt = datetime.combine(deadline_date, deadline_time)
@@ -130,14 +199,12 @@ with tab1:
                             # --- LOGIC PARITY: Display exact same confirmation info as main.py ---
                             st.markdown("### 📝 Rubric Setup Summary")
                             st.info(f"""
-                            **Rubric Set ID:** `{rubric_set_id}`
+**Rubric Set ID:** `{rubric_set_id}`  
+**Deadline (IST):** {deadline_display_str}  
+**Max Attempts:** {attempts_str}  
+**Parsed Criteria:** {len(parsed_rubrics)} criteria
+""")
                             
-                            **Deadline (IST):** {deadline_display_str}
-                            
-                            **Max Attempts:** {attempts_str}
-                            
-                            **Parsed Criteria:** {len(parsed_rubrics)} criteria
-                            """)
                             st.warning("📌 Share this Rubric Set ID with students so they can submit against it.")
                             
                             st.markdown("### 🧠 Extracted Logic (Raw JSON):")

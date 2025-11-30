@@ -14,6 +14,7 @@ from app.api.frontend_api import (
     save_bluebook_results,
     get_bluebook_history
 )
+
 from frontend.pages.utils.session_manager import check_authentication
 
 st.set_page_config(page_title="Bluebook Extraction", page_icon="📸", layout="wide")
@@ -21,13 +22,92 @@ st.set_page_config(page_title="Bluebook Extraction", page_icon="📸", layout="w
 # Check authentication
 check_authentication('teacher')
 
-# Hide the default Streamlit page navigation sidebar
+# MSRIT Color Scheme
 st.markdown("""
-    <style>
-        [data-testid="stSidebarNav"] {
-            display: none;
-        }
-    </style>
+<style>
+    /* MSRIT Color Theme */
+    .stApp {
+        background-color: #f5f5f5;
+    }
+    
+    /* Primary buttons - Red */
+    .stButton > button[kind="primary"] {
+        background-color: #c41e3a !important;
+        color: white !important;
+    }
+    
+    .stButton > button[kind="primary"]:hover {
+        background-color: #a01830 !important;
+    }
+    
+    /* Secondary buttons - Navy */
+    .stButton > button[kind="secondary"] {
+        background-color: #2d3e50 !important;
+        color: white !important;
+    }
+    
+    .stButton > button[kind="secondary"]:hover {
+        background-color: #1f2d3d !important;
+    }
+    
+    /* Regular buttons - Navy */
+    .stButton > button {
+        background-color: #2d3e50 !important;
+        color: white !important;
+    }
+    
+    .stButton > button:hover {
+        background-color: #1f2d3d !important;
+    }
+    
+    /* Sidebar */
+    section[data-testid="stSidebar"] {
+        background-color: #2d3e50 !important;
+    }
+    
+    section[data-testid="stSidebar"] * {
+        color: white !important;
+    }
+    
+    /* Headers */
+    h1, h2, h3 {
+        color: #2d3e50 !important;
+    }
+    
+    /* Tabs */
+    .stTabs [data-baseweb="tab-list"] {
+        background-color: #2d3e50;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        color: white !important;
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background-color: #c41e3a !important;
+    }
+    
+    /* Radio buttons */
+    .stRadio > label {
+        color: #2d3e50 !important;
+        font-weight: 600 !important;
+    }
+    
+    /* Metrics */
+    [data-testid="stMetricValue"] {
+        color: #c41e3a !important;
+    }
+    
+    /* Download buttons */
+    .stDownloadButton > button {
+        background-color: #2d3e50 !important;
+        color: white !important;
+    }
+    
+    .stDownloadButton > button:hover {
+        background-color: #c41e3a !important;
+    }
+</style>
 """, unsafe_allow_html=True)
 
 st.title("📸 Bluebook Marks Extraction")
@@ -36,15 +116,12 @@ st.markdown(f"**Welcome, {st.session_state.user_name}!**")
 # Sidebar
 with st.sidebar:
     st.header("🎯 Quick Actions")
-    
     st.markdown("### 📚 Features")
     st.info("📸 **Bluebook Marks Extraction**\n\n*You are here*")
-    
     if st.button("📝 Report Evaluation", use_container_width=True, key="sidebar_report"):
         st.switch_page("pages/6_📝_Report_Evaluation.py")
     
     st.markdown("---")
-    
     if st.button("🏠 Dashboard", use_container_width=True):
         st.switch_page("pages/4_👨‍🏫_Teacher_Dashboard.py")
     if st.button("🚪 Logout", use_container_width=True):
@@ -128,7 +205,7 @@ def _process_and_display_extraction(temp_paths, source_name):
                                         st.info("No marks found for T1")
                                 else:
                                     st.info("No T1 data available")
-
+                            
                             with t2_col:
                                 st.markdown("#### 📝 Test 2 (T2)")
                                 t2_data = cie_marks.get('T2', {})
@@ -147,7 +224,6 @@ def _process_and_display_extraction(temp_paths, source_name):
                                         st.info("No marks found for T2")
                                 else:
                                     st.info("No T2 data available")
-
                     
                     # Create downloadable CSV
                     st.markdown("---")
@@ -159,6 +235,7 @@ def _process_and_display_extraction(temp_paths, source_name):
                             'USN': bluebook.get('usn', ''),
                             'Subject_Code': bluebook.get('subject_code', ''),
                         }
+                        
                         cie_marks = bluebook.get('cie_marks', {})
                         for test in ['T1', 'T2']:
                             test_data = cie_marks.get(test, {})
@@ -167,6 +244,7 @@ def _process_and_display_extraction(temp_paths, source_name):
                                 for part in ['a', 'b', 'c', 'd']:
                                     col_name = f"{test}_{q_num}_{part}"
                                     row[col_name] = q_data.get(part, '')
+                        
                         csv_data.append(row)
                     
                     df = pd.DataFrame(csv_data)
@@ -193,7 +271,7 @@ def _process_and_display_extraction(temp_paths, source_name):
             for p in temp_paths:
                 if os.path.exists(p):
                     os.unlink(p)
-            
+                    
         except Exception as e:
             st.error(f"❌ Extraction error: {str(e)}")
             import traceback
@@ -299,7 +377,6 @@ with extraction_tab:
                     st.image(img_bytes, caption=f"Photo {idx+1}", use_container_width=True)
             
             st.markdown("---")
-            
             if st.button("🧠 Extract from All Captured Photos", use_container_width=True, type="primary", key="extract_camera_btn"):
                 import tempfile
                 temp_paths = []
@@ -332,7 +409,6 @@ with history_tab:
                 st.markdown(f"**Extraction Date:** {record.get('extraction_date', 'N/A')}")
                 st.markdown(f"**Total Bluebooks:** {record.get('total_bluebooks', 0)}")
                 st.markdown(f"**Image:** {record.get('image_filename', 'N/A')}")
-                
                 st.markdown("---")
                 st.markdown("**📊 Extracted Data:**")
                 st.json(record.get('bluebooks', []), expanded=False)

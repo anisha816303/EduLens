@@ -10,11 +10,12 @@ sys.path.insert(0, project_root)
 
 # --- IMPORTS FROM API ONLY (NO DIRECT BACKEND ACCESS) ---
 from app.api.frontend_api import (
-    list_submissions_for_student, 
+    list_submissions_for_student,
     get_rubric_meta,
     grade_student_submission,
     get_student_submission_record  # <--- NEW WRAPPER
 )
+
 from app.core.config import get_ist_timezone, now_utc
 from frontend.pages.utils.session_manager import check_authentication
 
@@ -23,13 +24,71 @@ st.set_page_config(page_title="Student Dashboard", page_icon="👨‍🎓", layo
 # Check authentication
 check_authentication('student')
 
-# Hide the default Streamlit page navigation sidebar
+# MSRIT Color Scheme
 st.markdown("""
-    <style>
-        [data-testid="stSidebarNav"] {
-            display: none;
-        }
-    </style>
+<style>
+    /* MSRIT Color Theme */
+    .stApp {
+        background-color: #f5f5f5;
+    }
+    
+    /* Primary buttons - Red */
+    .stButton > button[kind="primary"] {
+        background-color: #c41e3a !important;
+        color: white !important;
+    }
+    
+    .stButton > button[kind="primary"]:hover {
+        background-color: #a01830 !important;
+    }
+    
+    /* Regular buttons - Navy */
+    .stButton > button {
+        background-color: #2d3e50 !important;
+        color: white !important;
+    }
+    
+    .stButton > button:hover {
+        background-color: #1f2d3d !important;
+    }
+    
+    /* Sidebar */
+    section[data-testid="stSidebar"] {
+        background-color: #2d3e50 !important;
+    }
+    
+    section[data-testid="stSidebar"] * {
+        color: white !important;
+    }
+    
+    /* Headers */
+    h1, h2, h3 {
+        color: #2d3e50 !important;
+    }
+    
+    /* Tabs */
+    .stTabs [data-baseweb="tab-list"] {
+        background-color: #2d3e50;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        color: white !important;
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background-color: #c41e3a !important;
+    }
+    
+    /* Progress bar */
+    .stProgress > div > div {
+        background-color: #c41e3a !important;
+    }
+    
+    /* Metrics */
+    [data-testid="stMetricValue"] {
+        color: #c41e3a !important;
+    }
+</style>
 """, unsafe_allow_html=True)
 
 st.title("👨‍🎓 Student Dashboard")
@@ -163,7 +222,6 @@ with tab1:
                                     
                                     # Display detailed feedback
                                     st.markdown("### 📝 Detailed Feedback")
-                                    
                                     evaluations = parsed_result.get('evaluations', [])
                                     
                                     if not evaluations:
