@@ -2,12 +2,18 @@ import streamlit as st
 import sys
 import os
 
+
+
 # Add project root to path
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, project_root)
 
+
+
 from app.api.frontend_api import verify_student_password, verify_teacher_password, get_student, get_teacher
 from frontend.pages.utils.session_manager import init_session_state
+
+
 
 # Page configuration
 st.set_page_config(
@@ -17,8 +23,12 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+
+
 # Initialize session state
 init_session_state()
+
+
 
 # Check if already logged in
 if st.session_state.get('logged_in', False):
@@ -28,7 +38,9 @@ if st.session_state.get('logged_in', False):
     else:
         st.switch_page("pages/4_👨‍🏫_Teacher_Dashboard.py")
 
-# Enhanced CSS with animations and better styling
+
+
+# Enhanced CSS with animations and better styling + MOBILE RESPONSIVE
 st.markdown("""
 <style>
     /* Hide Streamlit branding */
@@ -42,8 +54,8 @@ st.markdown("""
     /* Split background with subtle gradient */
     .stApp {
         background: linear-gradient(to right, 
-            #2d3e50 0%, #2d3e50 50%, 
-            #c41e3a 50%, #c41e3a 100%) !important;
+            #2d3e50 0%, #2d3e50 65%, 
+            #c41e3a 65%, #c41e3a 100%) !important;
     }
     
     [data-testid="column"] {
@@ -120,6 +132,7 @@ st.markdown("""
     /* Radio button styling */
     .stRadio > div {
         gap: 2rem !important;
+        justify-content: center !important;
     }
     
     /* Feature card animation */
@@ -142,11 +155,60 @@ st.markdown("""
     * {
         transition: color 0.2s ease, background-color 0.2s ease;
     }
+    
+    /* MOBILE RESPONSIVE - Tablets and below */
+    @media (max-width: 768px) {
+        .stApp {
+            background: #c41e3a !important;
+        }
+        
+        [data-testid="column"]:first-child {
+            display: none !important;
+        }
+        
+        [data-testid="column"]:last-child {
+            padding: 2rem 1.5rem !important;
+            min-height: 100vh !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: center !important;
+        }
+        
+        /* Adjust heading size on mobile */
+        h2 {
+            font-size: 1.8rem !important;
+        }
+    }
+    
+    /* MOBILE RESPONSIVE - Small phones */
+    @media (max-width: 480px) {
+        [data-testid="column"]:last-child {
+            padding: 1.5rem 1rem !important;
+        }
+        
+        h2 {
+            font-size: 1.5rem !important;
+        }
+        
+        input {
+            padding: 0.75rem !important;
+            font-size: 0.95rem !important;
+        }
+        
+        .stButton > button {
+            padding: 0.85rem !important;
+            font-size: 1rem !important;
+        }
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# Create two columns
-col1, col2 = st.columns([1, 1], gap="small")
+
+
+# Create two columns - LEFT BIGGER (65%), RIGHT SMALLER (35%)
+col1, col2 = st.columns([1.85, 1], gap="small")
+
+
 
 # LEFT COLUMN
 with col1:
@@ -190,67 +252,76 @@ with col1:
     </div>
     """, unsafe_allow_html=True)
     
+    # Create two columns for the cards - SIDE BY SIDE
+    card_col1, card_col2 = st.columns(2, gap="medium")
+    
     # For Teachers Card - enhanced
-    st.markdown("""
-    <div class="feature-card" style="background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%); 
-                padding: 2.25rem; border-radius: 16px; margin-bottom: 1.5rem; 
-                box-shadow: 0 10px 30px rgba(0,0,0,0.15); 
-                border: 1px solid rgba(255,255,255,0.2);
-                transition: transform 0.3s ease, box-shadow 0.3s ease;">
-        <h3 style="color: #c41e3a; margin: 0 0 1.25rem 0; font-size: 1.4rem; font-weight: 800; 
-                   border-bottom: 3px solid #c41e3a; padding-bottom: 0.75rem; letter-spacing: 0.3px;">
-            👨‍🏫 For Teachers
-        </h3>
-        <ul style="color: #2d3e50; list-style: none; padding: 0; margin: 0;">
-            <li style="color: #2d3e50; font-size: 1.05rem; line-height: 2.2; padding-left: 0.5rem;">
-                <span style="color: #4caf50; font-weight: 700;">✓</span> Upload rubrics in PDF format
-            </li>
-            <li style="color: #2d3e50; font-size: 1.05rem; line-height: 2.2; padding-left: 0.5rem;">
-                <span style="color: #4caf50; font-weight: 700;">✓</span> AI-powered rubric extraction
-            </li>
-            <li style="color: #2d3e50; font-size: 1.05rem; line-height: 2.2; padding-left: 0.5rem;">
-                <span style="color: #4caf50; font-weight: 700;">✓</span> Automated bluebook marks extraction
-            </li>
-            <li style="color: #2d3e50; font-size: 1.05rem; line-height: 2.2; padding-left: 0.5rem;">
-                <span style="color: #4caf50; font-weight: 700;">✓</span> Set deadlines & attempt limits
-            </li>
-            <li style="color: #2d3e50; font-size: 1.05rem; line-height: 2.2; padding-left: 0.5rem;">
-                <span style="color: #4caf50; font-weight: 700;">✓</span> Real-time submission tracking
-            </li>
-        </ul>
-    </div>
-    """, unsafe_allow_html=True)
+    with card_col1:
+        st.markdown("""
+        <div class="feature-card" style="background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%); 
+                    padding: 2.25rem; border-radius: 16px; 
+                    box-shadow: 0 10px 30px rgba(0,0,0,0.15); 
+                    border: 1px solid rgba(255,255,255,0.2);
+                    transition: transform 0.3s ease, box-shadow 0.3s ease;
+                    height: 100%;">
+            <h3 style="color: #c41e3a; margin: 0 0 1.25rem 0; font-size: 1.4rem; font-weight: 800; 
+                       border-bottom: 3px solid #c41e3a; padding-bottom: 0.75rem; letter-spacing: 0.3px;">
+                👨‍🏫 For Teachers
+            </h3>
+            <ul style="color: #2d3e50; list-style: none; padding: 0; margin: 0;">
+                <li style="color: #2d3e50; font-size: 1.05rem; line-height: 2.2; padding-left: 0.5rem;">
+                    <span style="color: #4caf50; font-weight: 700;">✓</span> Upload rubrics in PDF format
+                </li>
+                <li style="color: #2d3e50; font-size: 1.05rem; line-height: 2.2; padding-left: 0.5rem;">
+                    <span style="color: #4caf50; font-weight: 700;">✓</span> AI-powered rubric extraction
+                </li>
+                <li style="color: #2d3e50; font-size: 1.05rem; line-height: 2.2; padding-left: 0.5rem;">
+                    <span style="color: #4caf50; font-weight: 700;">✓</span> Automated bluebook marks extraction
+                </li>
+                <li style="color: #2d3e50; font-size: 1.05rem; line-height: 2.2; padding-left: 0.5rem;">
+                    <span style="color: #4caf50; font-weight: 700;">✓</span> Set deadlines & attempt limits
+                </li>
+                <li style="color: #2d3e50; font-size: 1.05rem; line-height: 2.2; padding-left: 0.5rem;">
+                    <span style="color: #4caf50; font-weight: 700;">✓</span> Real-time submission tracking
+                </li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
     
     # For Students Card - enhanced
-    st.markdown("""
-    <div class="feature-card" style="background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%); 
-                padding: 2.25rem; border-radius: 16px; 
-                box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-                border: 1px solid rgba(255,255,255,0.2);
-                transition: transform 0.3s ease, box-shadow 0.3s ease;">
-        <h3 style="color: #c41e3a; margin: 0 0 1.25rem 0; font-size: 1.4rem; font-weight: 800; 
-                   border-bottom: 3px solid #c41e3a; padding-bottom: 0.75rem; letter-spacing: 0.3px;">
-            👨‍🎓 For Students
-        </h3>
-        <ul style="color: #2d3e50; list-style: none; padding: 0; margin: 0;">
-            <li style="color: #2d3e50; font-size: 1.05rem; line-height: 2.2; padding-left: 0.5rem;">
-                <span style="color: #4caf50; font-weight: 700;">✓</span> Submit reports for instant grading
-            </li>
-            <li style="color: #2d3e50; font-size: 1.05rem; line-height: 2.2; padding-left: 0.5rem;">
-                <span style="color: #4caf50; font-weight: 700;">✓</span> Get detailed AI feedback
-            </li>
-            <li style="color: #2d3e50; font-size: 1.05rem; line-height: 2.2; padding-left: 0.5rem;">
-                <span style="color: #4caf50; font-weight: 700;">✓</span> Track submission attempts
-            </li>
-            <li style="color: #2d3e50; font-size: 1.05rem; line-height: 2.2; padding-left: 0.5rem;">
-                <span style="color: #4caf50; font-weight: 700;">✓</span> View rubric-based scores
-            </li>
-            <li style="color: #2d3e50; font-size: 1.05rem; line-height: 2.2; padding-left: 0.5rem;">
-                <span style="color: #4caf50; font-weight: 700;">✓</span> Monitor academic progress
-            </li>
-        </ul>
-    </div>
-    """, unsafe_allow_html=True)
+    with card_col2:
+        st.markdown("""
+        <div class="feature-card" style="background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%); 
+                    padding: 2.25rem; border-radius: 16px; 
+                    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+                    border: 1px solid rgba(255,255,255,0.2);
+                    transition: transform 0.3s ease, box-shadow 0.3s ease;
+                    height: 100%;">
+            <h3 style="color: #c41e3a; margin: 0 0 1.25rem 0; font-size: 1.4rem; font-weight: 800; 
+                       border-bottom: 3px solid #c41e3a; padding-bottom: 0.75rem; letter-spacing: 0.3px;">
+                👨‍🎓 For Students
+            </h3>
+            <ul style="color: #2d3e50; list-style: none; padding: 0; margin: 0;">
+                <li style="color: #2d3e50; font-size: 1.05rem; line-height: 2.2; padding-left: 0.5rem;">
+                    <span style="color: #4caf50; font-weight: 700;">✓</span> Submit reports for instant grading
+                </li>
+                <li style="color: #2d3e50; font-size: 1.05rem; line-height: 2.2; padding-left: 0.5rem;">
+                    <span style="color: #4caf50; font-weight: 700;">✓</span> Get detailed AI feedback
+                </li>
+                <li style="color: #2d3e50; font-size: 1.05rem; line-height: 2.2; padding-left: 0.5rem;">
+                    <span style="color: #4caf50; font-weight: 700;">✓</span> Track submission attempts
+                </li>
+                <li style="color: #2d3e50; font-size: 1.05rem; line-height: 2.2; padding-left: 0.5rem;">
+                    <span style="color: #4caf50; font-weight: 700;">✓</span> View rubric-based scores
+                </li>
+                <li style="color: #2d3e50; font-size: 1.05rem; line-height: 2.2; padding-left: 0.5rem;">
+                    <span style="color: #4caf50; font-weight: 700;">✓</span> Monitor academic progress
+                </li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+
+
 
 # RIGHT COLUMN
 with col2:
