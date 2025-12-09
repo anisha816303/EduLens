@@ -141,10 +141,13 @@ def list_submissions_for_rubric(rubric_set_id: str) -> List[Dict[str, Any]]:
     if not db_client: return []
     return list(db_client.submissions_col.find({"rubric_set_id": rubric_set_id}, {'_id': 0}))
 
-def grade_student_submission(student_id: str, report_file_path: str, rubric_set_id: str) -> Dict[str, Any]:
-    """
-    Uses core `evaluator.py` logic to grade submission.
-    """
+def grade_student_submission(student_id, file_path, rubric_set_id, project_name):
+    payload = {
+        "student_id": student_id,
+        "rubric_set_id": rubric_set_id,
+        "project_name": project_name
+    }
+
     if not db_client: return {"error": "Database not connected"}
 
     try:
@@ -170,7 +173,7 @@ def grade_student_submission(student_id: str, report_file_path: str, rubric_set_
         # 3. Grade using CORE logic
         print(f"🧠 Grading submission for {student_id}...")
         # Note: grade_submission expects a file path, not file object, based on your main.py usage
-        parsed_result = grade_submission(report_file_path, parsed_rubrics, GRADE_MODEL)
+        parsed_result = grade_submission(file_path, parsed_rubrics, GRADE_MODEL)
         
         # 4. Save to DB
         new_attempt = used_attempts + 1
@@ -178,8 +181,9 @@ def grade_student_submission(student_id: str, report_file_path: str, rubric_set_
         parsed_result["_attempt_number"] = new_attempt
         
         mongo_op = db_client.upsert_submission(
-            student_id, rubric_set_id, report_file_path,
-            parsed_rubrics, parsed_result, new_attempt
+            student_id, rubric_set_id, file_path,
+            parsed_rubrics, parsed_result, new_attempt,
+            project_name=project_name
         )
         
         return {

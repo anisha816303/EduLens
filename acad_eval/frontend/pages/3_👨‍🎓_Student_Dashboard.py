@@ -115,6 +115,13 @@ with tab1:
         placeholder="Enter the Rubric Set ID provided by your teacher",
         help="Your teacher should have shared this ID with you"
     )
+
+    project_name = st.text_input(
+        "Project Name",
+        placeholder="Enter the title of your project",
+        max_chars=150
+    )
+
     
     if rubric_set_id:
         # API CALL: Get metadata
@@ -185,76 +192,80 @@ with tab1:
                 )
                 
                 if uploaded_file:
-                    # Save uploaded file temporarily
-                    import tempfile
-                    with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_file:
-                        tmp_file.write(uploaded_file.getbuffer())
-                        temp_path = tmp_file.name
-                    
-                    st.success(f"✅ File uploaded: {uploaded_file.name}")
-                    
-                    if st.button("🚀 Submit for Grading", type="primary", use_container_width=True):
-                        with st.spinner("🧠 AI is grading your submission... This may take a minute..."):
-                            try:
-                                # API CALL: Grade submission
-                                result = grade_student_submission(
-                                    st.session_state.user_id,
-                                    temp_path,
-                                    rubric_set_id
-                                )
-                                
-                                # Check for errors in result
-                                if "error" in result:
-                                    st.error(f"❌ Error: {result['error']}")
-                                else:
-                                    st.success("✅ Grading Complete!")
-                                    st.balloons()
+                    if not project_name:
+                        st.warning("⚠️ Please enter a Project Name to proceed with submission.")
+                    else:
+                        # Save uploaded file temporarily
+                        import tempfile
+                        with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_file:
+                            tmp_file.write(uploaded_file.getbuffer())
+                            temp_path = tmp_file.name
+                        
+                        st.success(f"✅ File uploaded: {uploaded_file.name}")
+                        
+                        if st.button("🚀 Submit for Grading", type="primary", use_container_width=True, key="submit_grading_btn"):
+                            with st.spinner("🧠 AI is grading your submission... This may take a minute..."):
+                                try:
+                                    # API CALL: Grade submission
+                                    result = grade_student_submission(
+                                        st.session_state.user_id,
+                                        temp_path,
+                                        rubric_set_id,
+                                        project_name
+                                    )
                                     
-                                    # Access the nested result dictionary
-                                    parsed_result = result.get('result', {})
-                                    
-                                    # Display score
-                                    total_score = parsed_result.get('total_score', 0)
-                                    parsed_rubrics = rubric_meta.get('parsed_rubrics', [])
-                                    max_score = len(parsed_rubrics) * 10
-                                    
-                                    st.markdown(f"### 🎯 Your Score: **{total_score} / {max_score}**")
-                                    
-                                    # Display detailed feedback
-                                    st.markdown("### 📝 Detailed Feedback")
-                                    evaluations = parsed_result.get('evaluations', [])
-                                    
-                                    if not evaluations:
-                                        st.warning("⚠️ No detailed evaluations returned. Showing raw output:")
-                                        st.json(parsed_result)
+                                    # Check for errors in result
+                                    if "error" in result:
+                                        st.error(f"❌ Error: {result['error']}")
                                     else:
-                                        for i, eval_item in enumerate(evaluations, 1):
-                                            criterion = eval_item.get('criterion', 'Unknown Criterion')
-                                            score = eval_item.get('score', 0)
-                                            feedback = eval_item.get('feedback', 'No feedback provided.')
-                                            
-                                            with st.expander(f"Criterion {i}: {criterion} ({score}/10)", expanded=True):
-                                                st.markdown(f"**Feedback:** {feedback}")
-                                                st.progress(min(score / 10, 1.0))
+                                        st.success("✅ Grading Complete!")
+                                        st.balloons()
+                                        
+                                        # Access the nested result dictionary
+                                        parsed_result = result.get('result', {})
+                                        
+                                        # Display score
+                                        total_score = parsed_result.get('total_score', 0)
+                                        parsed_rubrics = rubric_meta.get('parsed_rubrics', [])
+                                        max_score = len(parsed_rubrics) * 10
+                                        
+                                        st.markdown(f"### 🎯 Your Score: **{total_score} / {max_score}**")
+                                        
+                                        # Display detailed feedback
+                                        st.markdown("### 📝 Detailed Feedback")
+                                        evaluations = parsed_result.get('evaluations', [])
+                                        
+                                        if not evaluations:
+                                            st.warning("⚠️ No detailed evaluations returned. Showing raw output:")
+                                            st.json(parsed_result)
+                                        else:
+                                            for i, eval_item in enumerate(evaluations, 1):
+                                                criterion = eval_item.get('criterion', 'Unknown Criterion')
+                                                score = eval_item.get('score', 0)
+                                                feedback = eval_item.get('feedback', 'No feedback provided.')
+                                                
+                                                with st.expander(f"Criterion {i}: {criterion} ({score}/10)", expanded=True):
+                                                    st.markdown(f"**Feedback:** {feedback}")
+                                                    st.progress(min(score / 10, 1.0))
+                                        
+                                        # Overall feedback
+                                        if parsed_result.get('feedback'):
+                                            st.markdown("### 💬 Overall Feedback")
+                                            st.info(parsed_result.get('feedback'))
+                                        
+                                        # Show raw JSON for debugging if needed
+                                        with st.expander("🔍 View Raw Grading Data"):
+                                            st.json(parsed_result)
                                     
-                                    # Overall feedback
-                                    if parsed_result.get('feedback'):
-                                        st.markdown("### 💬 Overall Feedback")
-                                        st.info(parsed_result.get('feedback'))
-                                    
-                                    # Show raw JSON for debugging if needed
-                                    with st.expander("🔍 View Raw Grading Data"):
-                                        st.json(parsed_result)
-                                
-                                # Cleanup
-                                os.unlink(temp_path)
-                                
-                            except Exception as e:
-                                st.error(f"❌ Grading failed: {str(e)}")
-                                import traceback
-                                st.code(traceback.format_exc())
-                                if os.path.exists(temp_path):
+                                    # Cleanup
                                     os.unlink(temp_path)
+                                    
+                                except Exception as e:
+                                    st.error(f"❌ Grading failed: {str(e)}")
+                                    import traceback
+                                    st.code(traceback.format_exc())
+                                    if os.path.exists(temp_path):
+                                        os.unlink(temp_path)
         else:
             st.error("❌ Invalid Rubric Set ID. Please check with your teacher.")
 

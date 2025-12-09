@@ -114,17 +114,20 @@ class MongoDBClient:
     
     def upsert_submission(self, student_id: str, rubric_set_id: str, filename: str, 
                          parsed_rubrics: List[Dict[str, Any]], parsed_result: Dict[str, Any], 
-                         new_attempt_number: int) -> str:
+                         new_attempt_number: int, project_name: str = "") -> str:
         """Upserts the grading result and updates attempt number."""
         try:
+            timestamp = parsed_result.get("_timestamp", datetime.now(timezone.utc).isoformat())
+            
             update_doc = {
                 "$set": {
                     "filename": filename,
                     "rubric_set_id": rubric_set_id,
                     "rubrics": parsed_rubrics,
                     "result": parsed_result,
-                    "timestamp": parsed_result.get("_timestamp", datetime.now(timezone.utc).isoformat()),
-                    "attempt_number": new_attempt_number
+                    "timestamp": timestamp,
+                    "attempt_number": new_attempt_number,
+                    "project_name": project_name
                 },
                 "$setOnInsert": {
                     "student_id": student_id,
@@ -136,6 +139,26 @@ class MongoDBClient:
                 {"student_id": student_id, "rubric_set_id": rubric_set_id},
                 update_doc,
                 upsert=True
+            )
+            
+            # --- Update Rubric Set with Submission Summary ---
+            # Remove existing entry for this student if any
+            self.rubric_sets_col.update_one(
+                {"rubric_set_id": rubric_set_id},
+                {"$pull": {"submissions_summary": {"student_id": student_id}}}
+            )
+            
+            # Add new entry
+            summary_entry = {
+                "student_id": student_id,
+                "project_name": project_name,
+                "total_score": parsed_result.get("total_score", 0),
+                "timestamp": timestamp
+            }
+            
+            self.rubric_sets_col.update_one(
+                {"rubric_set_id": rubric_set_id},
+                {"$push": {"submissions_summary": summary_entry}}
             )
             
             operation = "updated" if res.modified_count else "inserted"

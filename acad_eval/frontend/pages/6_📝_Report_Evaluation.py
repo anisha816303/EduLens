@@ -122,7 +122,7 @@ with st.sidebar:
         st.switch_page("EduLens.py")
 
 # Main tabs
-tab1, tab2 = st.tabs(["📝 Create Rubric", "📊 View Rubrics & Submissions"])
+tab1, tab2, tab3 = st.tabs(["📝 Create Rubric", "📊 View Rubrics & Submissions", "📈 Submission Stats"])
 
 # TAB 1: Create Rubric
 with tab1:
@@ -272,7 +272,7 @@ with tab2:
                 submissions = list_submissions_for_rubric(rubric_id)
                 
                 if not submissions:
-                    st.info("📭 No submissions yet for this rubric.")
+                    st.info("📭 No submission details available.")
                 else:
                     sub_data = []
                     for sub in submissions:
@@ -284,3 +284,173 @@ with tab2:
                         })
                     
                     st.dataframe(pd.DataFrame(sub_data), use_container_width=True)
+
+# TAB 3: Submission Stats
+with tab3:
+    st.header("📈 Submission Statistics & Reports")
+    
+    rubrics = list_rubric_sets()
+    
+    if not rubrics:
+        st.info("📭 No rubrics to analyze.")
+    else:
+        # Create a mapping for dropdown
+        rubric_options = {r['rubric_set_id']: f"{r['rubric_set_id'][:15]}... ({len(r.get('submissions_summary', []))} submissions)" for r in rubrics}
+        
+        selected_rubric_id = st.selectbox(
+            "Select Rubric Set",
+            options=list(rubric_options.keys()),
+            format_func=lambda x: rubric_options[x]
+        )
+        
+        if selected_rubric_id:
+            # Find selected rubric object
+            selected_rubric = next((r for r in rubrics if r['rubric_set_id'] == selected_rubric_id), None)
+            
+            if selected_rubric:
+                summary_data = selected_rubric.get('submissions_summary', [])
+                
+                if summary_data:
+                    # Metrics
+                    total_subs = len(summary_data)
+                    avg_score = sum(s.get('total_score', 0) for s in summary_data) / total_subs if total_subs else 0
+                    
+                    m1, m2 = st.columns(2)
+                    m1.metric("Total Submissions", total_subs)
+                    m2.metric("Average Score", f"{avg_score:.2f}")
+                    
+                    # Display Table
+                    st.markdown("### 📋 Submission Records")
+                    df = pd.DataFrame(summary_data)
+                    
+                    # Reorder/Rename columns for display
+                    display_cols = ['student_id', 'project_name', 'total_score', 'timestamp']
+                    df_display = df[display_cols].copy()
+                    df_display.columns = ['Student ID', 'Project Name', 'Total Score', 'Timestamp']
+                    
+                    st.dataframe(df_display, use_container_width=True)
+                    
+                    # Downloads
+                    st.markdown("### 💾 Export Report")
+                    
+                    col_d1, col_d2 = st.columns(2)
+                    
+                    # Generate PDF Data
+                    try:
+                        from fpdf import FPDF
+                        import tempfile
+                        
+                        class PDF(FPDF):
+                            def header(self):
+                                self.set_font('Helvetica', 'B', 15)
+                                self.cell(0, 10, 'Submission Report', align='C')
+                                self.ln(20)
+                                
+                            def footer(self):
+                                self.set_y(-15)
+                                self.set_font('Helvetica', 'I', 8)
+                                self.cell(0, 10, f'Page {self.page_no()}/{{nb}}', align='C')
+
+                        pdf = PDF()
+                        pdf.alias_nb_pages()
+                        pdf.add_page()
+                        pdf.set_font("Helvetica", size=12)
+                        
+                        # Rubric Info
+                        pdf.set_font("Helvetica", 'B', 12)
+                        pdf.cell(0, 10, f"Rubric ID: {selected_rubric_id}", ln=True)
+                        pdf.cell(0, 10, f"Total Submissions: {total_subs}", ln=True)
+                        pdf.cell(0, 10, f"Average Score: {avg_score:.2f}", ln=True)
+                        pdf.ln(10)
+                        
+                        # Table Header
+                        pdf.set_font("Helvetica", 'B', 10)
+                        pdf.set_fill_color(200, 220, 255)
+                        pdf.cell(40, 10, "Student ID", border=1, fill=True)
+                        pdf.cell(90, 10, "Project Name", border=1, fill=True)
+                        pdf.cell(30, 10, "Score", border=1, fill=True)
+                        pdf.ln()
+                        
+                        # Table Rows
+                        pdf.set_font("Helvetica", size=10)
+                        for item in summary_data:
+                            student = str(item.get('student_id', 'N/A'))
+                            proj = str(item.get('project_name', 'N/A'))[:50]
+                            score = str(item.get('total_score', 0))
+                            
+                            pdf.cell(40, 10, student, border=1)
+                            pdf.cell(90, 10, proj, border=1)
+                            pdf.cell(30, 10, score, border=1)
+                            pdf.ln()
+                        
+                        # Output PDF as bytes
+                        # FPDF's output(dest='S') returns a string, we need bytes.
+                        # Using tempfile is safer for FPDF compatibility.
+                        with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_pdf:
+                            pdf.output(tmp_pdf.name)
+                            tmp_pdf_path = tmp_pdf.name
+                            
+                        with open(tmp_pdf_path, "rb") as f:
+                            pdf_bytes = f.read()
+                        os.unlink(tmp_pdf_path)
+                        
+                        with col_d1:
+                            st.download_button(
+                                label="📥 Download PDF",
+                                data=pdf_bytes,
+                                file_name=f"report_{selected_rubric_id[:8]}.pdf",
+                                mime="application/pdf",
+                                use_container_width=True
+                            )
+                            
+                    except Exception as e:
+                        with col_d1:
+                            st.error(f"PDF Error: {str(e)}")
+
+                    # Generate DOCX Data
+                    try:
+                        from docx import Document
+                        from docx.shared import Inches
+                        import io
+                        
+                        doc = Document()
+                        doc.add_heading('Submission Report', 0)
+                        
+                        doc.add_paragraph(f"Rubric ID: {selected_rubric_id}")
+                        doc.add_paragraph(f"Total Submissions: {total_subs}")
+                        doc.add_paragraph(f"Average Score: {avg_score:.2f}")
+                        
+                        table = doc.add_table(rows=1, cols=3)
+                        table.style = 'Table Grid'
+                        hdr_cells = table.rows[0].cells
+                        hdr_cells[0].text = 'Student ID'
+                        hdr_cells[1].text = 'Project Name'
+                        hdr_cells[2].text = 'Score'
+                        
+                        for item in summary_data:
+                            row_cells = table.add_row().cells
+                            row_cells[0].text = str(item.get('student_id', 'N/A'))
+                            row_cells[1].text = str(item.get('project_name', 'N/A'))
+                            row_cells[2].text = str(item.get('total_score', 0))
+                            
+                        # Save to bytes
+                        doc_io = io.BytesIO()
+                        doc.save(doc_io)
+                        doc_io.seek(0)
+                        
+                        with col_d2:
+                            st.download_button(
+                                label="📥 Download Document",
+                                data=doc_io,
+                                file_name=f"report_{selected_rubric_id[:8]}.docx",
+                                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                                use_container_width=True
+                            )
+                            
+                    except Exception as e:
+                        with col_d2:
+                             st.error(f"DOCX Error: {str(e)}")
+                            
+                else:
+                    st.info("ℹ️ No submissions recorded yet for this rubric.")
+

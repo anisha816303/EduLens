@@ -128,6 +128,37 @@ with st.sidebar:
         st.session_state.clear()
         st.switch_page("EduLens.py")
 
+def compute_best_two_total(test_marks):
+    """
+    test_marks = {
+        "Q1": {"a": 5, "b": 5, "c": 5},
+        "Q2": {"a": 5, "b": 3, "c": 2},
+        "Q3": {"a": 1, "b": 1, "c": 1}
+    }
+    Computes sum of parts per question, then takes the best 2 questions.
+    Handles string/numeric inputs robustly.
+    """
+    if not test_marks:
+        return 0
+
+    totals = []
+    for q, parts in test_marks.items():
+        q_total = 0
+        for v in parts.values():
+            try:
+                # Convert to float to handle strings like "5", "4.5"
+                # If v is None or non-numeric string, it will be skipped
+                if v is not None:
+                    q_total += float(v)
+            except (ValueError, TypeError):
+                continue
+        totals.append(q_total)
+
+    # Pick the highest two question totals
+    best_two = sorted(totals, reverse=True)[:2]
+    return sum(best_two)
+
+
 # Helper function for processing extraction and displaying results
 def _process_and_display_extraction(temp_paths, source_name):
     """Common processing and display logic for extraction from uploaded or captured images."""
@@ -237,6 +268,10 @@ def _process_and_display_extraction(temp_paths, source_name):
                         }
                         
                         cie_marks = bluebook.get('cie_marks', {})
+
+                        # ------------------------------
+                        # Add T1 and T2 question parts to CSV
+                        # ------------------------------
                         for test in ['T1', 'T2']:
                             test_data = cie_marks.get(test, {})
                             for q_num in ['Q1', 'Q2', 'Q3']:
@@ -244,8 +279,20 @@ def _process_and_display_extraction(temp_paths, source_name):
                                 for part in ['a', 'b', 'c', 'd']:
                                     col_name = f"{test}_{q_num}_{part}"
                                     row[col_name] = q_data.get(part, '')
-                        
+
+                        # ------------------------------
+                        # Compute TOTAL based on the rules
+                        # ------------------------------
+                        t1_total = compute_best_two_total(cie_marks.get("T1", {}))
+                        t2_total = compute_best_two_total(cie_marks.get("T2", {}))
+
+                        # Final TOTAL = T1 best two + T2 best two
+                        row["T1_TOTAL"] = t1_total
+                        row["T2_TOTAL"] = t2_total
+                        row["TOTAL"] = t1_total + t2_total
+
                         csv_data.append(row)
+
                     
                     df = pd.DataFrame(csv_data)
                     csv = df.to_csv(index=False)
