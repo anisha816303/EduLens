@@ -27,6 +27,8 @@ langchain-google-genai
 plotly
 certifi
 streamlit>=1.39.0
+fpdf2
+python-docx
 
 # --- YOLO / CV ---
 ultralytics>=8.0.0
