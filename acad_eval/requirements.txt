@@ -26,3 +26,5 @@ Pillow
 numpy
 certifi
 streamlit>=1.39.0
+fpdf
+docx
